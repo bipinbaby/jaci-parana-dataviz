@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DISSOLVE</title>
+  <title>DATAVIZ — RESEX Jaci-Paraná</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -257,6 +257,33 @@
       cursor: pointer;
     }
 
+    .scroll-hint {
+      position: fixed;
+      bottom: 6rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 15;
+      font-family: system-ui, sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      color: rgba(255,255,255,0.5);
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.6s;
+      pointer-events: none;
+    }
+    .scroll-hint.visible { opacity: 1; }
+    .scroll-hint .hint-arrow {
+      display: block;
+      margin: 0.3rem auto 0;
+      font-size: 1rem;
+      animation: hintBob 1.4s ease-in-out infinite;
+    }
+    @keyframes hintBob {
+      0%, 100% { transform: translateY(0); opacity: 0.5; }
+      50% { transform: translateY(5px); opacity: 1; }
+    }
+
     /* ── Mobile responsive ─────────────────── */
     @media (max-width: 600px) {
       .back-btn { font-size: 0.7rem; top: 1rem; left: 1rem; }
@@ -283,6 +310,7 @@
       .sp-cat-group { padding: 0.2rem 0.7rem; }
       .sp-species-row { padding: 0.12rem 0 0.12rem 1rem; font-size: 0.6rem; }
       .sp-footer { padding: 0.35rem 0.7rem; font-size: 0.45rem; }
+      .scroll-hint { bottom: 7.5rem; font-size: 0.65rem; }
     }
   </style>
 </head>
@@ -300,6 +328,8 @@
       <div class="sp-footer-row"><span class="sp-footer-swatch" style="background:rgba(255,80,80,0.7)"></span> Year in red = last recorded, not resurveyed since</div>
     </div>
   </div>
+
+  <div class="scroll-hint" id="scrollHint">Swipe to explore terrain<span class="hint-arrow">&#8595;</span></div>
 
   <div class="layer-bar" id="layerBar">
     <div class="layer-btn active" data-layer="forest" style="--btn-color:#1F8D49">
@@ -1112,6 +1142,10 @@
           backBtn.classList.add('visible');
           document.getElementById('yearPanel').classList.add('visible');
           layerBar.classList.add('visible');
+          // Show scroll hint after a short delay
+          setTimeout(() => {
+            if (view === 'topo') document.getElementById('scrollHint').classList.add('visible');
+          }, 800);
         }
       }
       else if (view === 'topo') {
@@ -1343,6 +1377,7 @@
         topoTiltTarget = 0;
         backBtn.classList.remove('visible');
         document.getElementById('yearPanel').classList.remove('visible');
+        document.getElementById('scrollHint').classList.remove('visible');
         layerBar.classList.remove('visible');
         hideSpeciesPopup();
       }
@@ -1465,6 +1500,7 @@
         lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
       } else if (view === 'topo') {
         e.preventDefault();
+        document.getElementById('scrollHint').classList.remove('visible');
         const curY = e.touches[0].clientY;
         const delta = (lastY - curY) * 0.003;
         topoTiltTarget = Math.max(0, Math.min(0.75, topoTiltTarget + delta));
@@ -1516,6 +1552,7 @@
     canvas.addEventListener('wheel', e => {
       if (view !== 'topo') return;
       e.preventDefault();
+      document.getElementById('scrollHint').classList.remove('visible');
 
       const delta = e.deltaY > 0 ? 0.05 : -0.05;
       topoTiltTarget = Math.max(0, Math.min(0.75, topoTiltTarget + delta));
