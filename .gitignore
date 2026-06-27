@@ -1,0 +1,20 @@
+# Large source data — not needed for web deployment
+cobertura_tiff/
+RESEX_Jaci_parana/
+*.zip
+*.xlsx
+*.jpeg
+
+# SRTM elevation tiles (30MB+ each)
+pipeline/*.hgt.gz
+
+# TouchDesigner assets (full-res, not for web)
+td_assets/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db

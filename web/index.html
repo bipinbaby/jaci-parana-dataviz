@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DISSOLVE</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+      cursor: default;
+    }
+    canvas { display: block; }
+    .back-btn {
+      position: fixed;
+      top: 1.5rem;
+      left: 1.5rem;
+      color: rgba(255,255,255,0.5);
+      font-family: system-ui, sans-serif;
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.4s;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .back-btn:hover { color: rgba(255,255,255,0.85); }
+    .back-btn.visible { opacity: 1; pointer-events: auto; }
+
+    .layer-bar {
+      position: fixed;
+      top: 1.5rem;
+      right: 1.5rem;
+      display: flex;
+      gap: 0.4rem;
+      z-index: 12;
+      opacity: 0;
+      transition: opacity 0.4s;
+      pointer-events: none;
+      font-family: system-ui, sans-serif;
+    }
+    .layer-bar.visible { opacity: 1; pointer-events: auto; }
+
+    .layer-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.75);
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s;
+    }
+    .layer-btn:hover {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+    }
+    .layer-btn.active {
+      border-color: var(--btn-color, rgba(255,255,255,0.4));
+      background: color-mix(in srgb, var(--btn-color, #fff) 15%, transparent);
+      color: #fff;
+    }
+    .layer-btn.off {
+      opacity: 0.35;
+      border-color: rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .btn-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .species-popup {
+      position: fixed;
+      z-index: 20;
+      background: rgba(10, 10, 15, 0.94);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      padding: 0;
+      font-family: system-ui, sans-serif;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.25s;
+      width: 280px;
+      max-height: 70vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .species-popup.visible { opacity: 1; pointer-events: auto; }
+
+    .sp-header {
+      padding: 0.7rem 0.9rem 0.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+    }
+    .sp-header .sp-count {
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .sp-header .sp-subtitle {
+      color: rgba(255,255,255,0.4);
+      font-size: 0.6rem;
+      margin-top: 0.15rem;
+      letter-spacing: 0.05em;
+    }
+
+    .sp-body {
+      overflow-y: auto;
+      padding: 0.4rem 0;
+      flex: 1;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.15) transparent;
+    }
+    .sp-body::-webkit-scrollbar { width: 4px; }
+    .sp-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+    .sp-cat-group {
+      padding: 0.25rem 0.9rem;
+    }
+    .sp-cat-title {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.6rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 0.2rem;
+    }
+    .sp-cat-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .sp-species-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.3rem;
+      padding: 0.12rem 0 0.12rem 1.2rem;
+      font-size: 0.65rem;
+      line-height: 1.35;
+    }
+    .sp-species-name {
+      color: rgba(255,255,255,0.75);
+      font-style: italic;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .sp-species-year {
+      flex-shrink: 0;
+      font-size: 0.55rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .sp-species-year.recent { color: rgba(80,200,120,0.7); }
+    .sp-species-year.old { color: rgba(255,80,80,0.7); }
+
+    .sp-footer {
+      padding: 0.45rem 0.9rem;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+      font-size: 0.5rem;
+      line-height: 1.5;
+      color: rgba(255,255,255,0.3);
+    }
+    .sp-footer-row {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .sp-footer-swatch {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .year-panel {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 0.4s;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.6rem;
+      font-family: system-ui, sans-serif;
+    }
+    .year-panel.visible { opacity: 1; pointer-events: auto; }
+
+    .year-display {
+      color: #fff;
+      font-size: 2.4rem;
+      font-weight: 200;
+      letter-spacing: 0.15em;
+      line-height: 1;
+    }
+
+    .year-stats {
+      color: rgba(255,255,255,0.5);
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-align: center;
+    }
+    .year-stats .forest { color: rgba(31,141,73,0.9); }
+    .year-stats .pasture { color: rgba(237,205,97,0.9); }
+
+    .year-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: min(80vw, 500px);
+      height: 2px;
+      background: rgba(255,255,255,0.15);
+      outline: none;
+      border-radius: 1px;
+      cursor: pointer;
+    }
+    .year-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      cursor: pointer;
+    }
+    .year-slider::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      border: none;
+      cursor: pointer;
+    }
+
+    /* ── Mobile responsive ─────────────────── */
+    @media (max-width: 600px) {
+      .back-btn { font-size: 0.7rem; top: 1rem; left: 1rem; }
+      .layer-bar {
+        top: auto;
+        bottom: 7rem;
+        right: 0.6rem;
+        flex-direction: column;
+        gap: 0.3rem;
+      }
+      .layer-btn {
+        padding: 0.45rem 0.7rem;
+        font-size: 0.65rem;
+      }
+      .btn-dot { width: 10px; height: 10px; }
+      .year-panel { bottom: 1.2rem; gap: 0.4rem; }
+      .year-display { font-size: 1.6rem; }
+      .year-stats { font-size: 0.6rem; }
+      .year-slider { height: 3px; }
+      .year-slider::-webkit-slider-thumb { width: 20px; height: 20px; }
+      .year-slider::-moz-range-thumb { width: 20px; height: 20px; }
+      .species-popup { width: min(280px, calc(100vw - 1.5rem)); max-height: 55vh; }
+      .sp-header { padding: 0.6rem 0.7rem 0.4rem; }
+      .sp-cat-group { padding: 0.2rem 0.7rem; }
+      .sp-species-row { padding: 0.12rem 0 0.12rem 1rem; font-size: 0.6rem; }
+      .sp-footer { padding: 0.35rem 0.7rem; font-size: 0.45rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="back-btn" id="backBtn">&#8592; GLOBE</div>
+
+  <div class="species-popup" id="speciesPopup">
+    <div class="sp-header">
+      <div class="sp-count" id="spCount"></div>
+      <div class="sp-subtitle" id="spSubtitle"></div>
+    </div>
+    <div class="sp-body" id="spBody"></div>
+    <div class="sp-footer">
+      <div class="sp-footer-row"><span class="sp-footer-swatch" style="background:rgba(80,200,120,0.7)"></span> Year in green = still observed recently</div>
+      <div class="sp-footer-row"><span class="sp-footer-swatch" style="background:rgba(255,80,80,0.7)"></span> Year in red = last recorded, not resurveyed since</div>
+    </div>
+  </div>
+
+  <div class="layer-bar" id="layerBar">
+    <div class="layer-btn active" data-layer="forest" style="--btn-color:#1F8D49">
+      <span class="btn-dot" style="background:#1F8D49"></span> Forest
+    </div>
+    <div class="layer-btn active" data-layer="pasture" style="--btn-color:#EDCD61">
+      <span class="btn-dot" style="background:#EDCD61"></span> Pasture
+    </div>
+    <div class="layer-btn active" data-layer="water" style="--btn-color:#3C8CFF">
+      <span class="btn-dot" style="background:#3C8CFF"></span> Water
+    </div>
+    <div class="layer-btn active" data-layer="biodiversity" style="--btn-color:#FF6B9D">
+      <span class="btn-dot" style="background:#FF6B9D"></span> Species
+    </div>
+  </div>
+
+  <div class="year-panel" id="yearPanel">
+    <div class="year-display" id="yearDisplay">1996</div>
+    <input type="range" class="year-slider" id="yearSlider" min="1996" max="2024" value="1996" step="1">
+    <div class="year-stats" id="yearStats"></div>
+  </div>
+  <canvas id="c"></canvas>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    const backBtn = document.getElementById('backBtn');
+
+    // ── Layer visibility ────────────────────────────────
+    const layers = { forest: true, pasture: true, water: true, biodiversity: true };
+
+    // ── Config ─────────────────────────────────────────
+    const TARGET = { lonMin: -65.0, lonMax: -63.5, latMin: -10.7, latMax: -8.9 };
+    const TARGET_LON = -64.25, TARGET_LAT = -9.76;
+
+    const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+    let W, H, R;
+    let rotY = -60, rotX = 0;
+    let autoRot = true;
+    let blink = 0;
+
+    // ── State ──────────────────────────────────────────
+    let view = 'globe';   // 'globe' | 'zoomIn' | 'topo' | 'zoomOut'
+    let tween = 0;        // 0→1 transition progress
+    let savedRotY, savedRotX; // to restore on back
+    let topoTilt = 0;     // 0 = flat 2D, 1 = full 3D terrain
+    let topoTiltTarget = 0; // smooth lerp target
+    let topoRotY = 0;    // Y-axis rotation for 3D terrain (drag to spin)
+    let topoRotYTarget = 0;
+    let selectedYear = 1996;
+    let metaStats = {};   // { year: { forest_ha, pasture_ha, ... } }
+
+    // ── Globe data ─────────────────────────────────────
+    let globeDots = [];
+    let globeReady = false;
+
+    // ── Topo data ──────────────────────────────────────
+    let topoDots = [];
+    let topoReady = false;
+
+    // ── Boundary data ──────────────────────────────────
+    let boundaryPts = [];  // [{lon, lat}] from GeoJSON
+    let boundaryReady = false;
+
+    // ── Biodiversity data ──────────────────────────────
+    let bioRecords = [];   // [{species, lat, lon, year, class}]
+    let bioReady = false;
+    const BIO_COLORS = {
+      Aves:           { r: 255, g: 107, b: 157 },  // pink
+      Insecta:        { r: 255, g: 184, b: 0 },    // amber
+      Mammalia:       { r: 255, g: 255, b: 255 },  // white
+      Squamata:       { r: 255, g: 140, b: 66 },   // orange
+      Amphibia:       { r: 0,   g: 230, b: 180 },  // teal
+      Magnoliopsida:  { r: 140, g: 230, b: 100 },  // lime green
+      Liliopsida:     { r: 180, g: 255, b: 140 },  // light green
+      Polypodiopsida: { r: 100, g: 200, b: 140 },  // fern green
+      Lycopodiopsida: { r: 80,  g: 180, b: 120 },  // dark fern
+      Gnetopsida:     { r: 120, g: 210, b: 110 },  // yellow-green
+      Testudines:     { r: 255, g: 170, b: 50 },   // warm orange
+      Chromadorea:    { r: 200, g: 160, b: 255 },  // lavender
+      Trematoda:      { r: 180, g: 140, b: 220 },  // purple
+      Cestoda:        { r: 160, g: 120, b: 200 },  // dark purple
+    };
+    const BIO_DEFAULT = { r: 200, g: 160, b: 255 };
+    let bioProjected = []; // [{sx, sy, dr, rec}] — updated each frame for hit testing
+    let speciesLastSeen = {}; // { species: maxYear }
+    let speciesFirstSeen = {}; // { species: minYear }
+    let selectedBioRec = null; // the selected cluster for popup
+    let bioClusters = [];      // spatial grid clusters of bio records
+
+
+    // RESEX bbox (matches the raster extent)
+    const BBOX = { w: -64.47724, s: -10.16611, e: -64.00078, n: -9.37789 };
+    // Expanded grid extent (set in loadTopo, used for projection)
+    let gridExtent = { w: BBOX.w, e: BBOX.e, s: BBOX.s, n: BBOX.n };
+
+    // Round-rect path helper
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.arcTo(x + w, y, x + w, y + r, r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+      ctx.lineTo(x + r, y + h);
+      ctx.arcTo(x, y + h, x, y + h - r, r);
+      ctx.lineTo(x, y + r);
+      ctx.arcTo(x, y, x + r, y, r);
+      ctx.closePath();
+    }
+
+    // Cluster bio records into spatial grid cells
+    function clusterBioRecords() {
+      const cellSize = 0.04; // ~4.4km cells
+      const cells = {};
+
+      for (const rec of bioRecords) {
+        const cx = Math.floor((rec.lon - BBOX.w) / cellSize);
+        const cy = Math.floor((BBOX.n - rec.lat) / cellSize);
+        const key = `${cx}_${cy}`;
+        if (!cells[key]) {
+          cells[key] = { records: [], categories: {} };
+        }
+        cells[key].records.push(rec);
+        const cls = rec.class || 'Unknown';
+        cells[key].categories[cls] = (cells[key].categories[cls] || 0) + 1;
+      }
+
+      bioClusters = [];
+      for (const key of Object.keys(cells)) {
+        const c = cells[key];
+        let sumLon = 0, sumLat = 0;
+        for (const r of c.records) { sumLon += r.lon; sumLat += r.lat; }
+        c.lon = sumLon / c.records.length;
+        c.lat = sumLat / c.records.length;
+        c.total = c.records.length;
+        c.sortedCats = Object.entries(c.categories).sort((a, b) => b[1] - a[1]);
+        bioClusters.push(c);
+      }
+
+      console.log(`Biodiversity clustered: ${bioClusters.length} clusters from ${bioRecords.length} records`);
+    }
+
+    // ── Resize ─────────────────────────────────────────
+    function resize() {
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = W;
+      canvas.height = H;
+      R = Math.min(W, H) * 0.38;
+    }
+
+    // ── Load globe dots from land mask ─────────────────
+    function loadGlobe() {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const mW = img.width, mH = img.height;
+        const off = document.createElement('canvas');
+        off.width = mW; off.height = mH;
+        const mCtx = off.getContext('2d');
+        mCtx.drawImage(img, 0, 0);
+        const px = mCtx.getImageData(0, 0, mW, mH).data;
+
+        function isLand(x, y) {
+          if (x < 0 || x >= mW || y < 0 || y >= mH) return false;
+          return px[(y * mW + x) * 4] > 100;
+        }
+        function coastDist(x, y) {
+          for (let r = 1; r <= 6; r++) {
+            for (let dy = -r; dy <= r; dy++)
+              for (let dx = -r; dx <= r; dx++) {
+                if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
+                if (!isLand(x + dx, y + dy)) return r / 6;
+              }
+          }
+          return 1;
+        }
+
+        const spacing = 1.5;
+        for (let lat = -88; lat <= 88; lat += spacing) {
+          const lonStep = spacing / Math.max(Math.cos(lat * Math.PI / 180), 0.15);
+          for (let lon = -180; lon < 180; lon += lonStep) {
+            const px2 = Math.floor(((lon + 180) / 360) * mW);
+            const py2 = Math.floor(((90 - lat) / 180) * mH);
+            if (px2 >= 0 && px2 < mW && py2 >= 0 && py2 < mH && isLand(px2, py2)) {
+              const isT = lon >= TARGET.lonMin && lon <= TARGET.lonMax &&
+                          lat >= TARGET.latMin && lat <= TARGET.latMax;
+              const cd = coastDist(px2, py2);
+              globeDots.push({ lon, lat, isTarget: isT, coast: 1 - cd });
+            }
+          }
+        }
+        // Dense target dots
+        for (let lat = TARGET.latMin; lat <= TARGET.latMax; lat += 0.4)
+          for (let lon = TARGET.lonMin; lon <= TARGET.lonMax; lon += 0.4)
+            globeDots.push({ lon, lat, isTarget: true, coast: 0.5 });
+
+        globeReady = true;
+      };
+      img.src = '../web_assets/land_mask.png';
+    }
+
+    // ── Load topo dots from heightmap + forest loss ────
+    function loadTopo() {
+      let hmPx = null, hmW = 0, hmH = 0;
+      let flPx = null, flW = 0, flH = 0;
+      let riverLines = null; // OSM river coordinates
+      let assetsLoaded = 0;
+
+      function checkReady() {
+        assetsLoaded++;
+        if (assetsLoaded >= 3) tryBuild();
+      }
+
+      // Load heightmap
+      const hm = new Image();
+      hm.crossOrigin = 'anonymous';
+      hm.onload = () => {
+        hmW = hm.width; hmH = hm.height;
+        const off = document.createElement('canvas');
+        off.width = hmW; off.height = hmH;
+        const c = off.getContext('2d');
+        c.drawImage(hm, 0, 0);
+        hmPx = c.getImageData(0, 0, hmW, hmH).data;
+        _hmPx = hmPx; _hmW = hmW; _hmH = hmH;
+        checkReady();
+      };
+      hm.src = '../web_assets/heightmap_expanded.png';
+
+      // Load forest loss texture
+      const fl = new Image();
+      fl.crossOrigin = 'anonymous';
+      fl.onload = () => {
+        flW = fl.width; flH = fl.height;
+        const off = document.createElement('canvas');
+        off.width = flW; off.height = flH;
+        const c = off.getContext('2d');
+        c.drawImage(fl, 0, 0);
+        flPx = c.getImageData(0, 0, flW, flH).data;
+        checkReady();
+      };
+      fl.src = '../web_assets/forest_loss.png';
+
+      // Load river lines from OSM
+      fetch('../web_assets/rivers.geojson')
+        .then(r => r.json())
+        .then(data => {
+          riverLines = [];
+          for (const f of data.features) {
+            if (f.geometry.type === 'LineString') {
+              riverLines.push(f.geometry.coordinates);
+            }
+          }
+          checkReady();
+        })
+        .catch(e => { console.warn('rivers.geojson load failed:', e); riverLines = []; checkReady(); });
+
+      // Load meta.json for yearly stats
+      fetch('../web_assets/meta.json')
+        .then(r => r.json())
+        .then(data => {
+          metaStats = data;
+          updateYearStats();
+        })
+        .catch(e => console.warn('meta.json load failed:', e));
+
+      function tryBuild() {
+        if (!hmPx || !flPx || !riverLines || !boundaryReady || boundaryPts.length === 0) {
+          setTimeout(tryBuild, 100);
+          return;
+        }
+
+        fetch('../web_assets/resex_boundary.geojson')
+          .then(r => r.json())
+          .then(data => {
+            const ring = data.features[0].geometry.coordinates[0];
+
+            function inside(lon, lat) {
+              let hit = false;
+              for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+                const xi = ring[i][0], yi = ring[i][1];
+                const xj = ring[j][0], yj = ring[j][1];
+                if ((yi > lat) !== (yj > lat) &&
+                    lon < (xj - xi) * (lat - yi) / (yj - yi) + xi)
+                  hit = !hit;
+              }
+              return hit;
+            }
+
+            function distToBoundary(lon, lat) {
+              let minD = Infinity;
+              for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+                const ax = ring[j][0], ay = ring[j][1];
+                const bx = ring[i][0], by = ring[i][1];
+                const dx = bx - ax, dy = by - ay;
+                const lenSq = dx * dx + dy * dy;
+                let t = lenSq > 0 ? ((lon - ax) * dx + (lat - ay) * dy) / lenSq : 0;
+                t = Math.max(0, Math.min(1, t));
+                const px = ax + t * dx, py = ay + t * dy;
+                const d = Math.sqrt((lon - px) ** 2 + (lat - py) ** 2);
+                if (d < minD) minD = d;
+              }
+              return minD;
+            }
+
+            function sampleElev(lon, lat) {
+              let px = Math.floor((lon - gridExtent.w) / (gridExtent.e - gridExtent.w) * hmW);
+              let py = Math.floor((gridExtent.n - lat) / (gridExtent.n - gridExtent.s) * hmH);
+              px = Math.max(0, Math.min(hmW - 1, px));
+              py = Math.max(0, Math.min(hmH - 1, py));
+              return hmPx[(py * hmW + px) * 4] / 255;
+            }
+
+            // Check if a point is near any OSM river segment
+            function nearRiver(lon, lat) {
+              const threshold = 0.006; // ~660m — wide enough to catch dots on the grid
+              const thSq = threshold * threshold;
+              for (const line of riverLines) {
+                for (let i = 0; i < line.length - 1; i++) {
+                  const ax = line[i][0], ay = line[i][1];
+                  const bx = line[i+1][0], by = line[i+1][1];
+                  const dx = bx - ax, dy = by - ay;
+                  const lenSq = dx * dx + dy * dy;
+                  let t = lenSq > 0 ? ((lon - ax) * dx + (lat - ay) * dy) / lenSq : 0;
+                  t = Math.max(0, Math.min(1, t));
+                  const px = ax + t * dx, py = ay + t * dy;
+                  const dSq = (lon - px) ** 2 + (lat - py) ** 2;
+                  if (dSq < thSq) return true;
+                }
+              }
+              return false;
+            }
+
+            // Sample forest_loss.png: 0=never forest, 1-254=loss year, 255=stable
+            function sampleLoss(lon, lat) {
+              const px = Math.floor((lon - BBOX.w) / (BBOX.e - BBOX.w) * flW);
+              const py = Math.floor((BBOX.n - lat) / (BBOX.n - BBOX.s) * flH);
+              if (px < 0 || px >= flW || py < 0 || py >= flH) return 0;
+              return flPx[(py * flW + px) * 4]; // R channel of grayscale
+            }
+
+            // Decode loss pixel value to actual year
+            // 0=never forest, 1-254 = linear map 1996-2024, 255=stable
+            function lossToYear(val) {
+              if (val === 0) return -1;   // never forest
+              if (val === 255) return 9999; // stable forest (never lost)
+              return Math.round(1996 + (val - 1) / 253 * 28);
+            }
+
+            const spacing = 0.009;
+            const SURROUND = 0.18; // ~20km surrounding territory
+            const extW = BBOX.w - SURROUND, extE = BBOX.e + SURROUND;
+            const extS = BBOX.s - SURROUND, extN = BBOX.n + SURROUND;
+            gridExtent = { w: extW, e: extE, s: extS, n: extN };
+            const cols = Math.floor((extE - extW) / spacing);
+            const rows = Math.floor((extN - extS) / spacing);
+            const maxEdgeDist = 0.02;
+
+            for (let row = 0; row < rows; row++) {
+              for (let col = 0; col < cols; col++) {
+                const lon = extW + (col + 0.5) * spacing;
+                const lat = extN - (row + 0.5) * spacing;
+                const isInside = inside(lon, lat);
+
+                if (isInside) {
+                  const bd = distToBoundary(lon, lat);
+                  const coast = Math.max(0, 1 - bd / maxEdgeDist);
+                  const elev = sampleElev(lon, lat);
+                  const lossVal = sampleLoss(lon, lat);
+                  const lossYear = lossToYear(lossVal);
+                  const isWater = nearRiver(lon, lat);
+                  topoDots.push({ col, row, cols, rows, coast, elev, lon, lat, lossYear, isWater, isOutside: false });
+                } else {
+                  // Surrounding area — fade with distance from boundary
+                  const bd = distToBoundary(lon, lat);
+                  const fade = Math.max(0, 1 - bd / SURROUND);
+                  const elev = sampleElev(lon, lat);
+                  topoDots.push({ col, row, cols, rows, coast: 0, elev, lon, lat, lossYear: -2, isWater: false, isOutside: true, fade });
+                }
+              }
+            }
+
+            topoReady = true;
+            console.log('Topo: ' + topoDots.length + ' dots, with loss year data');
+          });
+      }
+      tryBuild();
+    }
+
+    // ── Globe projection ───────────────────────────────
+    function projectGlobe(lon, lat, rY, rX, radius) {
+      const phi   = (90 - lat) * Math.PI / 180;
+      const theta = (lon + rY) * Math.PI / 180;
+      let x = Math.sin(phi) * Math.cos(theta);
+      let y = Math.cos(phi);
+      let z = Math.sin(phi) * Math.sin(theta);
+      const tilt = rX * Math.PI / 180;
+      const y2 = y * Math.cos(tilt) - z * Math.sin(tilt);
+      const z2 = y * Math.sin(tilt) + z * Math.cos(tilt);
+      y = y2; z = z2;
+      if (z < -0.02) return null;
+      const lx = 0.4, ly = 0.5, lz = 0.7;
+      const ll = Math.sqrt(lx*lx + ly*ly + lz*lz);
+      const light = Math.max(0, (x*lx + y*ly + z*lz) / ll);
+      return {
+        sx: W / 2 - x * radius,
+        sy: H / 2 - y * radius,
+        z,
+        depth: 0.3 + 0.7 * ((z + 1) / 2),
+        light: 0.25 + 0.75 * light,
+      };
+    }
+
+    // ── Easing ─────────────────────────────────────────
+    function easeInOut(t) {
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+
+    // ── Draw globe ─────────────────────────────────────
+    function drawGlobe(alpha, zoomScale, curRotY, curRotX) {
+      const cx = W / 2, cy = H / 2;
+      const r = R * zoomScale;
+
+      // Atmosphere
+      ctx.globalAlpha = alpha;
+      const atmos = ctx.createRadialGradient(cx, cy, r * 0.9, cx, cy, r * 1.25);
+      atmos.addColorStop(0, 'rgba(60,140,220,0)');
+      atmos.addColorStop(0.5, 'rgba(60,140,220,0.06)');
+      atmos.addColorStop(0.8, 'rgba(40,100,200,0.03)');
+      atmos.addColorStop(1, 'rgba(40,100,200,0)');
+      ctx.fillStyle = atmos;
+      ctx.fillRect(0, 0, W, H);
+
+      // Ocean
+      const ocean = ctx.createRadialGradient(cx - r*0.2, cy - r*0.25, 0, cx, cy, r);
+      ocean.addColorStop(0, 'rgba(15,25,45,0.9)');
+      ocean.addColorStop(0.7, 'rgba(8,14,28,0.95)');
+      ocean.addColorStop(1, 'rgba(4,8,18,1)');
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
+      ctx.fillStyle = ocean; ctx.fill();
+
+      // Edge
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
+      ctx.strokeStyle = `rgba(80,140,200,${0.1 * alpha})`;
+      ctx.lineWidth = 1.5; ctx.stroke();
+
+      const blinkA = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(blink * 3.5));
+
+      // Project dots
+      const proj = [];
+      for (const d of globeDots) {
+        const p = projectGlobe(d.lon, d.lat, curRotY, curRotX, r);
+        if (p) proj.push({ ...p, isTarget: d.isTarget, coast: d.coast });
+      }
+      proj.sort((a, b) => a.z - b.z);
+
+      ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+      for (const p of proj) {
+        const brightness = p.depth * p.light;
+        if (p.isTarget) {
+          const dr = 3.2 * p.depth + 1.2;
+          const a = blinkA * brightness * alpha;
+          ctx.fillStyle = `rgba(40,220,100,${a})`;
+          ctx.shadowColor = `rgba(40,220,100,${a * 0.6})`;
+          ctx.shadowBlur = 10 * blinkA;
+          ctx.beginPath(); ctx.arc(p.sx, p.sy, dr, 0, Math.PI*2); ctx.fill();
+          ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+        } else {
+          const size = 0.6 + 1.8 * (p.coast || 0);
+          const dr = size * p.depth + 0.3;
+          const a = brightness * 0.65 * alpha;
+          ctx.fillStyle = `rgba(210,220,230,${a})`;
+          ctx.beginPath(); ctx.arc(p.sx, p.sy, dr, 0, Math.PI*2); ctx.fill();
+        }
+      }
+
+      // Specular
+      const spec = ctx.createRadialGradient(cx - r*0.28, cy - r*0.3, 0, cx - r*0.15, cy - r*0.2, r*0.7);
+      spec.addColorStop(0, `rgba(255,255,255,${0.04 * alpha})`);
+      spec.addColorStop(0.4, `rgba(255,255,255,${0.015 * alpha})`);
+      spec.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
+      ctx.fillStyle = spec; ctx.fill();
+
+      ctx.globalAlpha = 1;
+    }
+
+    // ── Draw topo ──────────────────────────────────────
+    // Helper: convert lon/lat to topo screen coords (flat, no tilt)
+    function topoProject(lon, lat, offsetX, offsetY, gridW, gridH) {
+      const nx = (lon - BBOX.w) / (BBOX.e - BBOX.w);
+      const ny = (BBOX.n - lat) / (BBOX.n - BBOX.s);
+      return {
+        sx: offsetX + nx * gridW,
+        sy: offsetY + ny * gridH,
+      };
+    }
+
+    // Helper: sample heightmap elevation at a lon/lat
+    // (re-uses the same heightmap pixel data loaded in loadTopo)
+    let _hmPx = null, _hmW = 0, _hmH = 0;
+
+    function sampleElevGlobal(lon, lat) {
+      if (!_hmPx) return 0;
+      let px = Math.floor((lon - gridExtent.w) / (gridExtent.e - gridExtent.w) * _hmW);
+      let py = Math.floor((gridExtent.n - lat) / (gridExtent.n - gridExtent.s) * _hmH);
+      px = Math.max(0, Math.min(_hmW - 1, px));
+      py = Math.max(0, Math.min(_hmH - 1, py));
+      return _hmPx[(py * _hmW + px) * 4] / 255;
+    }
+
+    function drawTopo(alpha) {
+      if (!topoReady || topoDots.length === 0) return;
+
+      const sample = topoDots[0];
+      const totalCols = sample.cols, totalRows = sample.rows;
+      const aspect = totalCols / totalRows;
+
+      // Base grid to fill viewport (used for flat layout)
+      const maxH = H * 0.96;
+      const maxW = W * 0.96;
+      let gridH = maxH;
+      let gridW = gridH * aspect;
+      if (gridW > maxW) { gridW = maxW; gridH = gridW / aspect; }
+
+      const dotSpacingX = gridW / totalCols;
+      const dotSpacingY = gridH / totalRows;
+      const offsetX = (W - gridW) / 2;
+      const offsetY = (H - gridH) / 2;
+
+      // 3D tilt parameters
+      const tiltAngle = topoTilt * 70 * Math.PI / 180; // max 70° tilt
+      const cosT = Math.cos(tiltAngle);
+      const sinT = Math.sin(tiltAngle);
+      const elevScale = topoTilt * gridH * 0.12;
+
+      // Camera distance — far enough that all dots stay in front of camera
+      const camDist = gridH * 1.2;
+
+      // Y-axis rotation (drag to spin when tilted)
+      const rotRad = topoRotY * Math.PI / 180;
+      const cosR = Math.cos(rotRad);
+      const sinR = Math.sin(rotRad);
+
+      // ── Pass 1: project all dots into raw 3D screen space ──
+      const projected = [];
+      let minSX = Infinity, maxSX = -Infinity, minSY = Infinity, maxSY = -Infinity;
+
+      for (const d of topoDots) {
+        // Flat position relative to grid center
+        let relX = (d.col - totalCols / 2) * dotSpacingX;
+        let relZ = (d.row - totalRows / 2) * dotSpacingY;
+        const elevOffset = d.elev * elevScale;
+
+        // Y-axis rotation (spin left/right)
+        const rx = relX * cosR - relZ * sinR;
+        const rz = relX * sinR + relZ * cosR;
+        relX = rx;
+        relZ = rz;
+
+        // Tilt rotation around X-axis (view from above):
+        const yy = relZ * cosT - elevOffset * sinT;
+        const zz = -relZ * sinT - elevOffset * cosT;
+
+        // Perspective: camera at z = -camDist, looking +z
+        const depth = zz + camDist;
+        const pScale = camDist / Math.max(depth, 0.01);
+
+        const sx = relX * pScale;
+        const sy = yy * pScale;
+
+        // Only use reserve dots for viewport fit (not surrounding area)
+        if (!d.isOutside) {
+          if (sx < minSX) minSX = sx;
+          if (sx > maxSX) maxSX = sx;
+          if (sy < minSY) minSY = sy;
+          if (sy > maxSY) maxSY = sy;
+        }
+
+        const size = 0.3 + 0.4 * d.coast + topoTilt * 0.2 * d.elev;
+        const baseR = Math.min(dotSpacingX, dotSpacingY) * 0.26;
+        const dr = baseR * size * pScale;
+
+        const elevBright = topoTilt * 0.35 * d.elev;
+        const a = (0.4 + 0.25 * d.coast + elevBright) * alpha;
+
+        projected.push({ sx, sy, dr, a, sortZ: zz, elev: d.elev, pScale, lossYear: d.lossYear, isWater: d.isWater, isOutside: d.isOutside, fade: d.fade });
+      }
+
+      // ── Fit to viewport: scale & translate so terrain fills the screen ──
+      const rawW = maxSX - minSX || 1;
+      const rawH = maxSY - minSY || 1;
+      const rawCX = (minSX + maxSX) / 2;
+      const rawCY = (minSY + maxSY) / 2;
+
+      const margin = 0.78; // 78% of viewport — room for surrounding context
+      const fitScale = Math.min((W * margin) / rawW, (H * margin) / rawH);
+      const screenCX = W / 2;
+      const screenCY = H / 2;
+
+      // Apply fit transform to all dots
+      for (const p of projected) {
+        p.sx = screenCX + (p.sx - rawCX) * fitScale;
+        p.sy = screenCY + (p.sy - rawCY) * fitScale;
+        p.dr *= fitScale;
+      }
+
+      // Shrink biodiversity dots as tilt increases
+      const tiltShrink = 1 / (1 + topoTilt * 1.2);
+
+      // Sort back-to-front when tilted
+      if (topoTilt > 0.01) {
+        projected.sort((a, b) => b.sortZ - a.sortZ);
+      }
+
+      ctx.globalCompositeOperation = 'lighter';
+
+      // ── Draw land dots — colored by land cover state ──
+      for (const p of projected) {
+        if (p.sx < -10 || p.sx > W + 10 || p.sy < -10 || p.sy > H + 10) continue;
+
+        let r, g, b, dotAlpha;
+
+        if (p.isOutside) {
+          // Surrounding area — white, fading with distance
+          r = 255; g = 255; b = 255;
+          dotAlpha = 0.25 * p.fade * alpha;
+          if (dotAlpha < 0.005) continue;
+        } else if (p.isWater) {
+          // Water body — bright blue
+          if (!layers.water) continue;
+          r = 60; g = 140; b = 255;
+          dotAlpha = Math.min(p.a + 0.4, 1);
+        } else if (p.lossYear === -1) {
+          // Never forest (non-water, non-forest) — dim grey
+          r = 60; g = 65; b = 70;
+          dotAlpha = Math.min(p.a, 1);
+        } else if (p.lossYear === 9999 || p.lossYear > selectedYear) {
+          // Still forest at selected year — green
+          if (!layers.forest) continue;
+          r = 31; g = 141; b = 73;
+          dotAlpha = Math.min(p.a, 1);
+        } else {
+          // Cleared by selected year — pasture tan
+          if (!layers.pasture) continue;
+          r = 237; g = 205; b = 97;
+          dotAlpha = Math.min(p.a, 1);
+        }
+
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${dotAlpha})`;
+        ctx.beginPath();
+        ctx.arc(p.sx, p.sy, Math.max(p.dr, 0.4), 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // ── Draw biodiversity cluster boxes ──
+      bioProjected = [];
+      if (layers.biodiversity && bioReady && bioClusters.length > 0) {
+        ctx.globalCompositeOperation = 'source-over';
+
+        const scl = 1 / (1 + topoTilt * 0.4);
+        const pad = 5 * scl;
+        const circGap = 2 * scl;
+        const circR = 3.5 * scl;  // uniform circle radius
+        const cornerR = 4 * scl;
+
+        // Project all cluster centroids
+        const clusterProj = [];
+        for (const cluster of bioClusters) {
+          if (cluster.lon < gridExtent.w || cluster.lon > gridExtent.e || cluster.lat < gridExtent.s || cluster.lat > gridExtent.n) continue;
+
+          // Skip clusters with no visible species at current year
+          const hasVisible = cluster.records.some(r => {
+            const y = r.year;
+            return y === null || y === undefined || y < 1996 || y >= selectedYear;
+          });
+          if (!hasVisible) continue;
+
+          let relX = ((cluster.lon - gridExtent.w) / (gridExtent.e - gridExtent.w) - 0.5) * gridW;
+          let relZ = ((gridExtent.n - cluster.lat) / (gridExtent.n - gridExtent.s) - 0.5) * gridH;
+          const elev = sampleElevGlobal(cluster.lon, cluster.lat);
+          const elevOffset = elev * elevScale;
+
+          const rx = relX * cosR - relZ * sinR;
+          const rz = relX * sinR + relZ * cosR;
+          relX = rx; relZ = rz;
+
+          const yy = relZ * cosT - elevOffset * sinT;
+          const zz = -relZ * sinT - elevOffset * cosT;
+          const depth = zz + camDist;
+          const pScale = camDist / Math.max(depth, 0.01);
+
+          let sx = relX * pScale;
+          let sy = yy * pScale;
+          sx = screenCX + (sx - rawCX) * fitScale;
+          sy = screenCY + (sy - rawCY) * fitScale;
+
+          if (sx < -80 || sx > W + 80 || sy < -80 || sy > H + 80) continue;
+
+          clusterProj.push({ sx, sy, zz, cluster });
+        }
+
+        // Sort back-to-front when tilted
+        if (topoTilt > 0.01) {
+          clusterProj.sort((a, b) => b.zz - a.zz);
+        }
+
+        // Draw each cluster box
+        for (const cp of clusterProj) {
+          const { sx, sy, cluster } = cp;
+          const numCats = cluster.sortedCats.length;
+          const boxW = numCats * (circR * 2) + (numCats - 1) * circGap + pad * 2;
+          const boxH = circR * 2 + pad * 2;
+          const bx = sx - boxW / 2;
+          const by = sy - boxH / 2;
+
+          bioProjected.push({ sx, sy, bx, by, boxW, boxH, cluster, dr: Math.max(boxW, boxH) / 2 });
+
+          // Dark background
+          ctx.fillStyle = `rgba(8, 10, 16, ${0.88 * alpha})`;
+          roundRect(ctx, bx, by, boxW, boxH, cornerR);
+          ctx.fill();
+
+          // Neon glow border with twinkle (dominant category)
+          const domC = BIO_COLORS[cluster.sortedCats[0][0]] || BIO_DEFAULT;
+          const twinkle = 0.5 + 0.5 * Math.sin(blink * 0.8 + cluster.lon * 50 + cluster.lat * 40);
+          const glowA = (0.4 + 0.5 * twinkle) * alpha;
+          const blurSize = isMobile ? 3 + 3 * twinkle : 8 + 8 * twinkle;
+          ctx.shadowColor = `rgba(${domC.r}, ${domC.g}, ${domC.b}, ${glowA})`;
+          ctx.shadowBlur = blurSize;
+          ctx.strokeStyle = `rgba(${domC.r}, ${domC.g}, ${domC.b}, ${glowA})`;
+          ctx.lineWidth = 0.75;
+          roundRect(ctx, bx, by, boxW, boxH, cornerR);
+          ctx.stroke();
+          if (!isMobile) {
+            ctx.shadowBlur = 3 * twinkle;
+            roundRect(ctx, bx, by, boxW, boxH, cornerR);
+            ctx.stroke();
+          }
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+
+          // Category circles — uniform size
+          let cx = bx + pad + circR;
+          const cy = sy;
+          for (const [cls] of cluster.sortedCats) {
+            const c = BIO_COLORS[cls] || BIO_DEFAULT;
+
+            // Glow
+            ctx.fillStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${0.15 * alpha})`;
+            ctx.beginPath();
+            ctx.arc(cx, cy, circR * 1.6, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Solid circle
+            ctx.fillStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${0.85 * alpha})`;
+            ctx.beginPath();
+            ctx.arc(cx, cy, circR, 0, Math.PI * 2);
+            ctx.fill();
+
+            cx += circR * 2 + circGap;
+          }
+        }
+
+        ctx.globalCompositeOperation = 'lighter';
+      }
+
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    // ── Main draw loop ─────────────────────────────────
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      if (!globeReady) { requestAnimationFrame(draw); return; }
+
+      blink += 0.03;
+
+      if (view === 'globe') {
+        if (autoRot) rotY += 0.12;
+        drawGlobe(1, 1, rotY, rotX);
+      }
+      else if (view === 'zoomIn') {
+        tween = Math.min(tween + 0.012, 1);
+        const t = easeInOut(tween);
+
+        // Rotate toward RESEX center
+        let targetRY = 90 - TARGET_LON; // ~154.25
+        while (targetRY - savedRotY > 180) targetRY -= 360;
+        while (targetRY - savedRotY < -180) targetRY += 360;
+        const curRY = savedRotY + (targetRY - savedRotY) * t;
+
+        // Tilt slightly to center latitude
+        const targetRX = -TARGET_LAT * 0.6; // tilt to show the region
+        const curRX = savedRotX + (targetRX - savedRotX) * t;
+
+        // Zoom
+        const zoom = 1 + t * 5;
+
+        // Globe fades out in second half
+        const globeAlpha = t < 0.45 ? 1 : Math.max(0, 1 - (t - 0.45) / 0.35);
+        // Topo fades in from ~40%
+        const topoAlpha = t < 0.4 ? 0 : Math.min(1, (t - 0.4) / 0.4);
+
+        if (globeAlpha > 0) drawGlobe(globeAlpha, zoom, curRY, curRX);
+        if (topoAlpha > 0) drawTopo(topoAlpha);
+
+        if (tween >= 1) {
+          view = 'topo';
+          backBtn.classList.add('visible');
+          document.getElementById('yearPanel').classList.add('visible');
+          layerBar.classList.add('visible');
+        }
+      }
+      else if (view === 'topo') {
+        // Smooth lerp topoTilt toward target
+        topoTilt += (topoTiltTarget - topoTilt) * 0.08;
+        if (Math.abs(topoTilt - topoTiltTarget) < 0.001) topoTilt = topoTiltTarget;
+        // Rotation follows tilt — scroll drives both
+        topoRotY = topoTilt * 45;
+        drawTopo(1);
+        updatePopupPosition();
+      }
+      else if (view === 'zoomOut') {
+        tween = Math.max(tween - 0.015, 0);
+        const t = easeInOut(tween);
+
+        let targetRY = 90 - TARGET_LON;
+        while (targetRY - savedRotY > 180) targetRY -= 360;
+        while (targetRY - savedRotY < -180) targetRY += 360;
+        const curRY = savedRotY + (targetRY - savedRotY) * t;
+        const targetRX = -TARGET_LAT * 0.6;
+        const curRX = savedRotX + (targetRX - savedRotX) * t;
+        const zoom = 1 + t * 5;
+
+        const globeAlpha = t < 0.45 ? 1 : Math.max(0, 1 - (t - 0.45) / 0.35);
+        const topoAlpha = t < 0.4 ? 0 : Math.min(1, (t - 0.4) / 0.4);
+
+        if (globeAlpha > 0) drawGlobe(globeAlpha, zoom, curRY, curRX);
+        if (topoAlpha > 0) drawTopo(topoAlpha);
+
+        if (tween <= 0) {
+          view = 'globe';
+          rotY = savedRotY;
+          rotX = savedRotX;
+          autoRot = true;
+        }
+      }
+
+      requestAnimationFrame(draw);
+    }
+
+    // ── Click detection ────────────────────────────────
+    let clickStart = null;
+
+    canvas.addEventListener('mousedown', e => {
+      clickStart = { x: e.clientX, y: e.clientY };
+    });
+
+    const speciesPopup = document.getElementById('speciesPopup');
+
+    const CLASS_LABELS = {
+      Aves: 'Birds', Insecta: 'Insects', Mammalia: 'Mammals', Squamata: 'Reptiles',
+      Amphibia: 'Amphibians', Magnoliopsida: 'Flowering Plants', Liliopsida: 'Monocots',
+      Polypodiopsida: 'Ferns', Lycopodiopsida: 'Clubmoss', Gnetopsida: 'Gymnosperm',
+      Testudines: 'Turtles', Chromadorea: 'Nematodes', Trematoda: 'Flukes', Cestoda: 'Tapeworms',
+    };
+
+    function findBioHit(x, y) {
+      if (!layers.biodiversity) return null;
+      for (const bp of bioProjected) {
+        if (x >= bp.bx && x <= bp.bx + bp.boxW &&
+            y >= bp.by && y <= bp.by + bp.boxH) {
+          return bp;
+        }
+      }
+      return null;
+    }
+
+    function buildPopupContent(cluster) {
+      // Group records by unique species per class
+      const byClass = {};
+      for (const rec of cluster.records) {
+        const cls = rec.class || 'Unknown';
+        if (!byClass[cls]) byClass[cls] = {};
+        const sp = rec.species || 'Unknown';
+        if (!byClass[cls][sp]) byClass[cls][sp] = { last: null, first: null, count: 0 };
+        byClass[cls][sp].count++;
+        if (rec.year) {
+          if (byClass[cls][sp].last === null || rec.year > byClass[cls][sp].last) byClass[cls][sp].last = rec.year;
+          if (byClass[cls][sp].first === null || rec.year < byClass[cls][sp].first) byClass[cls][sp].first = rec.year;
+        }
+      }
+
+      // Filter: hide species the slider has passed
+      // - null year: always show (no date to filter on)
+      // - last < 1996: always show (predates slider range)
+      // - last >= selectedYear: show (slider hasn't passed them yet)
+      // - last >= 1996 AND last < selectedYear: hide (slider crossed past)
+      let totalVisible = 0;
+      let uniqueVisible = 0;
+      const filteredByClass = {};
+      for (const cls of Object.keys(byClass)) {
+        for (const [sp, info] of Object.entries(byClass[cls])) {
+          if (info.last === null || info.last < 1996 || info.last >= selectedYear) {
+            if (!filteredByClass[cls]) filteredByClass[cls] = {};
+            filteredByClass[cls][sp] = info;
+            uniqueVisible++;
+            totalVisible += info.count;
+          }
+        }
+      }
+
+      // Header
+      document.getElementById('spCount').textContent = `${totalVisible} observations`;
+      const groupCount = Object.keys(filteredByClass).length;
+      document.getElementById('spSubtitle').textContent = `${uniqueVisible} species · ${groupCount} groups`;
+
+      // Build species list
+      const body = document.getElementById('spBody');
+      body.innerHTML = '';
+
+      for (const [cls] of cluster.sortedCats) {
+        const species = filteredByClass[cls];
+        if (!species || Object.keys(species).length === 0) continue;
+        const c = BIO_COLORS[cls] || BIO_DEFAULT;
+        const label = CLASS_LABELS[cls] || cls;
+
+        const group = document.createElement('div');
+        group.className = 'sp-cat-group';
+
+        group.innerHTML = `<div class="sp-cat-title" style="color:rgb(${c.r},${c.g},${c.b})">` +
+          `<span class="sp-cat-dot" style="background:rgb(${c.r},${c.g},${c.b})"></span>${label}</div>`;
+
+        const sorted = Object.entries(species).sort((a, b) => (b[1].last || 0) - (a[1].last || 0));
+        for (const [name, info] of sorted) {
+          const row = document.createElement('div');
+          row.className = 'sp-species-row';
+          const lastY = info.last;
+          const yearText = lastY ? String(lastY) : '—';
+          const yearClass = lastY === null ? '' : (lastY >= 2020 ? 'recent' : 'old');
+          row.innerHTML =
+            `<span class="sp-species-name">${name}</span>` +
+            `<span class="sp-species-year ${yearClass}">${yearText}</span>`;
+          group.appendChild(row);
+        }
+
+        body.appendChild(group);
+      }
+    }
+
+    function showSpeciesPopup(hit, x, y) {
+      selectedBioRec = hit.cluster;
+      buildPopupContent(hit.cluster);
+      // Make visible off-screen first so we can measure, then position
+      speciesPopup.style.left = '-9999px';
+      speciesPopup.style.top = '0';
+      speciesPopup.classList.add('visible');
+      positionPopup(x, y);
+    }
+
+    function positionPopup(x, y) {
+      const pad = 8;
+      const popW = speciesPopup.offsetWidth || 280;
+      const popH = speciesPopup.offsetHeight || 200;
+
+      // Try right of cursor, fall back to left
+      let px = x + 16;
+      if (px + popW + pad > W) px = x - popW - 16;
+      // Clamp horizontally
+      px = Math.max(pad, Math.min(px, W - popW - pad));
+
+      // Try aligned to cursor, clamp vertically
+      let py = y - 10;
+      py = Math.max(pad, Math.min(py, H - popH - pad));
+
+      speciesPopup.style.left = px + 'px';
+      speciesPopup.style.top = py + 'px';
+    }
+
+    function updatePopupPosition() {
+      if (!selectedBioRec) return;
+      for (const bp of bioProjected) {
+        if (bp.cluster === selectedBioRec) {
+          positionPopup(bp.sx, bp.sy);
+          return;
+        }
+      }
+      hideSpeciesPopup();
+    }
+
+    function hideSpeciesPopup() {
+      speciesPopup.classList.remove('visible');
+      selectedBioRec = null;
+    }
+
+    canvas.addEventListener('mouseup', e => {
+      if (!clickStart) return;
+      const dx = e.clientX - clickStart.x;
+      const dy = e.clientY - clickStart.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      clickStart = null;
+
+      if (dist > 8) return;
+
+      // Species popup in topo view
+      if (view === 'topo') {
+        const hit = findBioHit(e.clientX, e.clientY);
+        if (hit) {
+          showSpeciesPopup(hit, e.clientX, e.clientY);
+          return;
+        } else {
+          hideSpeciesPopup();
+        }
+      }
+
+      if (view === 'globe') {
+        for (const d of globeDots) {
+          if (!d.isTarget) continue;
+          const p = projectGlobe(d.lon, d.lat, rotY, rotX, R);
+          if (!p) continue;
+          const cdist = Math.sqrt((p.sx - e.clientX)**2 + (p.sy - e.clientY)**2);
+          if (cdist < 30) {
+            savedRotY = rotY;
+            savedRotX = rotX;
+            autoRot = false;
+            view = 'zoomIn';
+            tween = 0;
+            canvas.style.cursor = 'default';
+            return;
+          }
+        }
+      }
+    });
+
+    // Back button
+    backBtn.addEventListener('click', () => {
+      if (view === 'topo') {
+        view = 'zoomOut';
+        tween = 1;
+        topoTiltTarget = 0;
+        backBtn.classList.remove('visible');
+        document.getElementById('yearPanel').classList.remove('visible');
+        layerBar.classList.remove('visible');
+        hideSpeciesPopup();
+      }
+    });
+
+    // ── Year slider ─────────────────────────────────────
+    const yearSlider = document.getElementById('yearSlider');
+    const yearDisplay = document.getElementById('yearDisplay');
+    const yearStatsEl = document.getElementById('yearStats');
+
+    yearSlider.addEventListener('input', e => {
+      selectedYear = parseInt(e.target.value);
+      yearDisplay.textContent = selectedYear;
+      updateYearStats();
+      // Refresh open popup so species filter updates with the year
+      if (selectedBioRec) {
+        buildPopupContent(selectedBioRec);
+      }
+    });
+
+    function updateYearStats() {
+      if (!metaStats || !metaStats.stats) return;
+      const y = metaStats.stats[String(selectedYear)];
+      if (!y) return;
+      const totalForest = Math.round(y.forest_ha || 0);
+      const totalPasture = Math.round(y.pasture_ha || 0);
+      yearStatsEl.innerHTML =
+        `<span class="forest">${totalForest.toLocaleString('en-US')} ha forest</span>` +
+        ` &nbsp;·&nbsp; ` +
+        `<span class="pasture">${totalPasture.toLocaleString('en-US')} ha pasture</span>`;
+    }
+
+    // ── Layer buttons ─────────────────────────────────
+    const layerBar = document.getElementById('layerBar');
+
+    document.querySelectorAll('.layer-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.layer;
+        layers[key] = !layers[key];
+        btn.classList.toggle('active', layers[key]);
+        btn.classList.toggle('off', !layers[key]);
+      });
+    });
+
+    // ── Drag interaction (globe only) ──────────────────
+    let dragging = false, lastX = 0, lastY = 0;
+
+    canvas.addEventListener('mousedown', e => {
+      if (view !== 'globe') return;
+      dragging = true; autoRot = false;
+      lastX = e.clientX; lastY = e.clientY;
+    });
+    window.addEventListener('mousemove', e => {
+      if (!dragging || view !== 'globe') return;
+      rotY += (e.clientX - lastX) * 0.3;
+      rotX += (e.clientY - lastY) * 0.15;
+      rotX = Math.max(-40, Math.min(40, rotX));
+      lastX = e.clientX; lastY = e.clientY;
+
+      // Check hover on target dots for cursor
+      let overTarget = false;
+      for (const d of globeDots) {
+        if (!d.isTarget) continue;
+        const p = projectGlobe(d.lon, d.lat, rotY, rotX, R);
+        if (!p) continue;
+        if (Math.sqrt((p.sx - e.clientX)**2 + (p.sy - e.clientY)**2) < 30) {
+          overTarget = true; break;
+        }
+      }
+      canvas.style.cursor = overTarget ? 'pointer' : 'default';
+    });
+    window.addEventListener('mouseup', () => {
+      if (view !== 'globe') return;
+      dragging = false;
+      setTimeout(() => { if (!dragging && view === 'globe') autoRot = true; }, 3000);
+    });
+
+    // Hover cursor for target region + species dots
+    canvas.addEventListener('mousemove', e => {
+      if (dragging) return;
+
+      if (view === 'topo') {
+        const hit = findBioHit(e.clientX, e.clientY);
+        canvas.style.cursor = hit ? 'pointer' : 'default';
+        return;
+      }
+
+      if (view !== 'globe') return;
+      let overTarget = false;
+      for (const d of globeDots) {
+        if (!d.isTarget) continue;
+        const p = projectGlobe(d.lon, d.lat, rotY, rotX, R);
+        if (!p) continue;
+        if (Math.sqrt((p.sx - e.clientX)**2 + (p.sy - e.clientY)**2) < 30) {
+          overTarget = true; break;
+        }
+      }
+      canvas.style.cursor = overTarget ? 'pointer' : 'default';
+    });
+
+    // Touch
+    let touchTiltY0 = null; // two-finger tilt baseline
+    canvas.addEventListener('touchstart', e => {
+      if (view === 'globe') {
+        dragging = true; autoRot = false;
+        lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
+        clickStart = { x: lastX, y: lastY };
+      } else if (view === 'topo') {
+        if (e.touches.length === 2) {
+          // Two-finger: start tilt gesture
+          touchTiltY0 = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        } else {
+          // Single finger: track for tap
+          lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
+          clickStart = { x: lastX, y: lastY };
+        }
+      }
+    }, { passive: true });
+    canvas.addEventListener('touchmove', e => {
+      if (view === 'globe') {
+        if (!dragging) return;
+        rotY += (e.touches[0].clientX - lastX) * 0.3;
+        rotX += (e.touches[0].clientY - lastY) * 0.15;
+        rotX = Math.max(-40, Math.min(40, rotX));
+        lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
+      } else if (view === 'topo' && e.touches.length === 2 && touchTiltY0 !== null) {
+        e.preventDefault();
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        const delta = (touchTiltY0 - midY) * 0.002;
+        topoTiltTarget = Math.max(0, Math.min(0.75, topoTiltTarget + delta));
+        touchTiltY0 = midY;
+      } else if (view === 'topo' && e.touches.length === 1) {
+        lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
+      }
+    }, { passive: false });
+    canvas.addEventListener('touchend', e => {
+      if (view === 'globe') {
+        dragging = false;
+        if (clickStart) {
+          const dx = lastX - clickStart.x, dy = lastY - clickStart.y;
+          if (Math.sqrt(dx*dx + dy*dy) < 15) {
+            // Tap — check target
+            for (const d of globeDots) {
+              if (!d.isTarget) continue;
+              const p = projectGlobe(d.lon, d.lat, rotY, rotX, R);
+              if (!p) continue;
+              if (Math.sqrt((p.sx - lastX)**2 + (p.sy - lastY)**2) < 40) {
+                savedRotY = rotY; savedRotX = rotX;
+                autoRot = false; view = 'zoomIn'; tween = 0;
+                clickStart = null;
+                return;
+              }
+            }
+          }
+        }
+        clickStart = null;
+        setTimeout(() => { if (!dragging && view === 'globe') autoRot = true; }, 3000);
+      } else if (view === 'topo') {
+        touchTiltY0 = null;
+        if (clickStart) {
+          const dx = lastX - clickStart.x, dy = lastY - clickStart.y;
+          if (Math.sqrt(dx*dx + dy*dy) < 15) {
+            // Tap — check cluster boxes
+            const hit = findBioHit(lastX, lastY);
+            if (hit) {
+              showSpeciesPopup(hit, lastX, lastY);
+            } else {
+              hideSpeciesPopup();
+            }
+          }
+        }
+        clickStart = null;
+      }
+    });
+
+    // ── Scroll to tilt (topo view only) ──────────────
+    canvas.addEventListener('wheel', e => {
+      if (view !== 'topo') return;
+      e.preventDefault();
+
+      const delta = e.deltaY > 0 ? 0.05 : -0.05;
+      topoTiltTarget = Math.max(0, Math.min(0.75, topoTiltTarget + delta));
+    }, { passive: false });
+
+
+    // ── Load boundary ────────────────────────────────
+    function loadBoundary() {
+      fetch('../web_assets/resex_boundary.geojson')
+        .then(r => r.json())
+        .then(data => {
+          const coords = data.features[0].geometry.coordinates[0];
+          // Densify: interpolate points along each segment for smooth dot tracing
+          const dense = [];
+          const dotSpacingDeg = 0.004; // ~400m spacing between boundary dots
+          for (let i = 0; i < coords.length - 1; i++) {
+            const [x0, y0] = coords[i];
+            const [x1, y1] = coords[i + 1];
+            const dx = x1 - x0, dy = y1 - y0;
+            const segLen = Math.sqrt(dx * dx + dy * dy);
+            const steps = Math.max(1, Math.round(segLen / dotSpacingDeg));
+            for (let s = 0; s < steps; s++) {
+              const t = s / steps;
+              dense.push({ lon: x0 + dx * t, lat: y0 + dy * t });
+            }
+          }
+          boundaryPts = dense;
+          boundaryReady = true;
+          console.log(`Boundary: ${boundaryPts.length} dots`);
+        })
+        .catch(e => console.warn('Boundary load failed:', e));
+    }
+
+
+
+    // ── Load biodiversity ────────────────────────────────
+    function loadBiodiversity() {
+      fetch('../web_assets/biodiversity.json')
+        .then(r => r.json())
+        .then(data => {
+          bioRecords = data.filter(d => d.lat && d.lon);
+
+          // Build first/last seen lookups
+          for (const r of bioRecords) {
+            if (!r.species || !r.year) continue;
+            if (!speciesLastSeen[r.species] || r.year > speciesLastSeen[r.species])
+              speciesLastSeen[r.species] = r.year;
+            if (!speciesFirstSeen[r.species] || r.year < speciesFirstSeen[r.species])
+              speciesFirstSeen[r.species] = r.year;
+          }
+
+          bioReady = true;
+          clusterBioRecords();
+          console.log(`Biodiversity: ${bioRecords.length} records, ${Object.keys(speciesLastSeen).length} species`);
+        })
+        .catch(e => console.warn('biodiversity.json load failed:', e));
+    }
+
+    // ── Init ───────────────────────────────────────────
+    window.addEventListener('resize', resize);
+    resize();
+    loadGlobe();
+    loadTopo();
+    loadBoundary();
+    loadBiodiversity();
+    draw();
+  </script>
+</body>
+</html>

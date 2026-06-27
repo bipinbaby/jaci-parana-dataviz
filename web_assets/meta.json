@@ -1,0 +1,302 @@
+{
+  "bbox": [
+    -64.47724,
+    -10.16611,
+    -64.00078,
+    -9.37789
+  ],
+  "center": [
+    -64.24736,
+    -9.75538
+  ],
+  "tiff_years": [
+    1996,
+    1998,
+    1999,
+    2000,
+    2001,
+    2002,
+    2003,
+    2004,
+    2005,
+    2006,
+    2007,
+    2008,
+    2009,
+    2010,
+    2011,
+    2012,
+    2013,
+    2014,
+    2015,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024
+  ],
+  "all_years": [
+    1985,
+    1986,
+    1987,
+    1988,
+    1989,
+    1990,
+    1991,
+    1992,
+    1993,
+    1994,
+    1995,
+    1996,
+    1997,
+    1998,
+    1999,
+    2000,
+    2001,
+    2002,
+    2003,
+    2004,
+    2005,
+    2006,
+    2007,
+    2008,
+    2009,
+    2010,
+    2011,
+    2012,
+    2013,
+    2014,
+    2015,
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024
+  ],
+  "raster_size": [
+    1767,
+    2923
+  ],
+  "class_names": {
+    "3": "1. Forest",
+    "4": "1. Forest",
+    "6": "1. Forest",
+    "11": "2. Non Forest Natural Formation",
+    "12": "2. Non Forest Natural Formation",
+    "15": "3. Farming",
+    "25": "4. Non vegetated area",
+    "31": "5. Water and Marine Environment",
+    "33": "5. Water and Marine Environment",
+    "39": "3. Farming",
+    "41": "3. Farming"
+  },
+  "stats": {
+    "1985": {
+      "forest_ha": 196747.4,
+      "pasture_ha": 15.7,
+      "total_ha": 197093.1
+    },
+    "1986": {
+      "forest_ha": 196767.2,
+      "pasture_ha": 11.4,
+      "total_ha": 197093.0
+    },
+    "1987": {
+      "forest_ha": 196770.0,
+      "pasture_ha": 11.4,
+      "total_ha": 197093.0
+    },
+    "1988": {
+      "forest_ha": 196729.6,
+      "pasture_ha": 36.6,
+      "total_ha": 197093.1
+    },
+    "1989": {
+      "forest_ha": 196692.2,
+      "pasture_ha": 62.0,
+      "total_ha": 197093.0
+    },
+    "1990": {
+      "forest_ha": 196693.4,
+      "pasture_ha": 57.6,
+      "total_ha": 197093.0
+    },
+    "1991": {
+      "forest_ha": 196752.2,
+      "pasture_ha": 5.0,
+      "total_ha": 197092.9
+    },
+    "1992": {
+      "forest_ha": 196762.7,
+      "pasture_ha": 8.5,
+      "total_ha": 197093.1
+    },
+    "1993": {
+      "forest_ha": 196751.0,
+      "pasture_ha": 13.0,
+      "total_ha": 197093.0
+    },
+    "1994": {
+      "forest_ha": 196745.6,
+      "pasture_ha": 13.7,
+      "total_ha": 197093.1
+    },
+    "1995": {
+      "forest_ha": 196737.7,
+      "pasture_ha": 32.6,
+      "total_ha": 197093.1
+    },
+    "1996": {
+      "forest_ha": 196736.1,
+      "pasture_ha": 73.0,
+      "total_ha": 197093.0
+    },
+    "1997": {
+      "forest_ha": 196744.8,
+      "pasture_ha": 74.6,
+      "total_ha": 197093.0
+    },
+    "1998": {
+      "forest_ha": 196749.1,
+      "pasture_ha": 65.2,
+      "total_ha": 197093.0
+    },
+    "1999": {
+      "forest_ha": 196736.7,
+      "pasture_ha": 74.9,
+      "total_ha": 197093.0
+    },
+    "2000": {
+      "forest_ha": 196752.2,
+      "pasture_ha": 168.0,
+      "total_ha": 197093.0
+    },
+    "2001": {
+      "forest_ha": 196546.5,
+      "pasture_ha": 379.9,
+      "total_ha": 197093.0
+    },
+    "2002": {
+      "forest_ha": 196415.2,
+      "pasture_ha": 511.3,
+      "total_ha": 197093.0
+    },
+    "2003": {
+      "forest_ha": 195143.4,
+      "pasture_ha": 1776.3,
+      "total_ha": 197093.0
+    },
+    "2004": {
+      "forest_ha": 191452.6,
+      "pasture_ha": 5466.1,
+      "total_ha": 197093.1
+    },
+    "2005": {
+      "forest_ha": 186822.9,
+      "pasture_ha": 10098.5,
+      "total_ha": 197093.0
+    },
+    "2006": {
+      "forest_ha": 177908.7,
+      "pasture_ha": 18986.7,
+      "total_ha": 197093.0
+    },
+    "2007": {
+      "forest_ha": 170035.4,
+      "pasture_ha": 26836.1,
+      "total_ha": 197093.0
+    },
+    "2008": {
+      "forest_ha": 166653.0,
+      "pasture_ha": 30216.8,
+      "total_ha": 197092.9
+    },
+    "2009": {
+      "forest_ha": 165414.7,
+      "pasture_ha": 31451.1,
+      "total_ha": 197092.9
+    },
+    "2010": {
+      "forest_ha": 163451.4,
+      "pasture_ha": 33414.1,
+      "total_ha": 197093.0
+    },
+    "2011": {
+      "forest_ha": 158635.5,
+      "pasture_ha": 38215.3,
+      "total_ha": 197092.9
+    },
+    "2012": {
+      "forest_ha": 155632.0,
+      "pasture_ha": 41200.8,
+      "total_ha": 197092.9
+    },
+    "2013": {
+      "forest_ha": 151774.9,
+      "pasture_ha": 45042.1,
+      "total_ha": 197092.9
+    },
+    "2014": {
+      "forest_ha": 147150.9,
+      "pasture_ha": 49637.7,
+      "total_ha": 197092.9
+    },
+    "2015": {
+      "forest_ha": 137326.1,
+      "pasture_ha": 59428.2,
+      "total_ha": 197093.1
+    },
+    "2016": {
+      "forest_ha": 125338.4,
+      "pasture_ha": 71390.9,
+      "total_ha": 197093.0
+    },
+    "2017": {
+      "forest_ha": 108551.7,
+      "pasture_ha": 88156.9,
+      "total_ha": 197093.1
+    },
+    "2018": {
+      "forest_ha": 99146.8,
+      "pasture_ha": 97528.2,
+      "total_ha": 197093.1
+    },
+    "2019": {
+      "forest_ha": 85865.9,
+      "pasture_ha": 110767.7,
+      "total_ha": 197093.1
+    },
+    "2020": {
+      "forest_ha": 73246.1,
+      "pasture_ha": 123369.4,
+      "total_ha": 197093.1
+    },
+    "2021": {
+      "forest_ha": 58469.6,
+      "pasture_ha": 138138.5,
+      "total_ha": 197093.1
+    },
+    "2022": {
+      "forest_ha": 50986.4,
+      "pasture_ha": 145615.1,
+      "total_ha": 197092.9
+    },
+    "2023": {
+      "forest_ha": 45162.6,
+      "pasture_ha": 151384.8,
+      "total_ha": 197093.0
+    },
+    "2024": {
+      "forest_ha": 44774.6,
+      "pasture_ha": 151852.4,
+      "total_ha": 197092.9
+    }
+  }
+}
