@@ -102,6 +102,9 @@
       overflow: hidden;
     }
     .species-popup.visible { opacity: 1; pointer-events: auto; }
+    .sp-collapse-bar {
+      display: none;
+    }
 
     .sp-header {
       padding: 0.7rem 0.9rem 0.5rem;
@@ -305,8 +308,38 @@
       .year-slider { height: 3px; }
       .year-slider::-webkit-slider-thumb { width: 20px; height: 20px; }
       .year-slider::-moz-range-thumb { width: 20px; height: 20px; }
-      .species-popup { width: min(280px, calc(100vw - 1.5rem)); max-height: 55vh; }
-      .sp-header { padding: 0.6rem 0.7rem 0.4rem; }
+      .species-popup {
+        width: 100%;
+        max-height: 50vh;
+        left: 0 !important;
+        bottom: 0 !important;
+        top: auto !important;
+        border-radius: 14px 14px 0 0;
+        border-bottom: none;
+        transition: opacity 0.25s, transform 0.3s ease;
+        transform: translateY(0);
+      }
+      .species-popup.collapsed {
+        max-height: none;
+        overflow: visible;
+      }
+      .species-popup.collapsed .sp-body,
+      .species-popup.collapsed .sp-footer {
+        display: none;
+      }
+      .sp-collapse-bar {
+        display: flex;
+        justify-content: center;
+        padding: 0.5rem 0 0.15rem;
+        cursor: pointer;
+      }
+      .sp-collapse-bar .sp-handle {
+        width: 32px;
+        height: 4px;
+        border-radius: 2px;
+        background: rgba(255,255,255,0.25);
+      }
+      .sp-header { padding: 0.6rem 0.7rem 0.4rem; cursor: pointer; }
       .sp-cat-group { padding: 0.2rem 0.7rem; }
       .sp-species-row { padding: 0.12rem 0 0.12rem 1rem; font-size: 0.6rem; }
       .sp-footer { padding: 0.35rem 0.7rem; font-size: 0.45rem; }
@@ -318,7 +351,8 @@
   <div class="back-btn" id="backBtn">&#8592; GLOBE</div>
 
   <div class="species-popup" id="speciesPopup">
-    <div class="sp-header">
+    <div class="sp-collapse-bar" id="spCollapseBar"><div class="sp-handle"></div></div>
+    <div class="sp-header" id="spHeader">
       <div class="sp-count" id="spCount"></div>
       <div class="sp-subtitle" id="spSubtitle"></div>
     </div>
@@ -329,7 +363,7 @@
     </div>
   </div>
 
-  <div class="scroll-hint" id="scrollHint">Swipe to explore terrain<span class="hint-arrow">&#8595;</span></div>
+  <div class="scroll-hint" id="scrollHint"><span id="scrollHintText"></span><span class="hint-arrow">&#8595;</span></div>
 
   <div class="layer-bar" id="layerBar">
     <div class="layer-btn active" data-layer="forest" style="--btn-color:#1F8D49">
@@ -1144,7 +1178,10 @@
           layerBar.classList.add('visible');
           // Show scroll hint after a short delay
           setTimeout(() => {
-            if (view === 'topo') document.getElementById('scrollHint').classList.add('visible');
+            if (view === 'topo') {
+              document.getElementById('scrollHintText').textContent = isMobile ? 'Swipe to explore terrain' : 'Scroll to explore terrain';
+              document.getElementById('scrollHint').classList.add('visible');
+            }
           }, 800);
         }
       }
@@ -1152,8 +1189,10 @@
         // Smooth lerp topoTilt toward target
         topoTilt += (topoTiltTarget - topoTilt) * 0.08;
         if (Math.abs(topoTilt - topoTiltTarget) < 0.001) topoTilt = topoTiltTarget;
-        // Rotation follows tilt — scroll drives both
-        topoRotY = topoTilt * 45;
+        // Rotation: base from tilt + user drag offset, lerp smoothly
+        const baseRotY = topoTilt * 45 + topoRotYTarget;
+        topoRotY += (baseRotY - topoRotY) * 0.1;
+        if (Math.abs(topoRotY - baseRotY) < 0.01) topoRotY = baseRotY;
         drawTopo(1);
         updatePopupPosition();
       }
@@ -1288,14 +1327,24 @@
     function showSpeciesPopup(hit, x, y) {
       selectedBioRec = hit.cluster;
       buildPopupContent(hit.cluster);
-      // Make visible off-screen first so we can measure, then position
-      speciesPopup.style.left = '-9999px';
-      speciesPopup.style.top = '0';
+      speciesPopup.classList.remove('collapsed');
+      if (isMobile) {
+        // Bottom sheet mode
+        speciesPopup.style.left = '0';
+        speciesPopup.style.top = 'auto';
+        speciesPopup.style.bottom = '0';
+      } else {
+        // Desktop: position near cursor
+        speciesPopup.style.left = '-9999px';
+        speciesPopup.style.top = '0';
+        speciesPopup.style.bottom = '';
+      }
       speciesPopup.classList.add('visible');
-      positionPopup(x, y);
+      if (!isMobile) positionPopup(x, y);
     }
 
     function positionPopup(x, y) {
+      if (isMobile) return; // bottom-sheet handles its own positioning
       const pad = 8;
       const popW = speciesPopup.offsetWidth || 280;
       const popH = speciesPopup.offsetHeight || 200;
@@ -1316,6 +1365,7 @@
 
     function updatePopupPosition() {
       if (!selectedBioRec) return;
+      if (isMobile) return; // fixed bottom sheet doesn't need repositioning
       for (const bp of bioProjected) {
         if (bp.cluster === selectedBioRec) {
           positionPopup(bp.sx, bp.sy);
@@ -1327,8 +1377,17 @@
 
     function hideSpeciesPopup() {
       speciesPopup.classList.remove('visible');
+      speciesPopup.classList.remove('collapsed');
       selectedBioRec = null;
     }
+
+    // Collapse/expand toggle on mobile
+    document.getElementById('spCollapseBar').addEventListener('click', () => {
+      speciesPopup.classList.toggle('collapsed');
+    });
+    document.getElementById('spHeader').addEventListener('click', () => {
+      if (isMobile) speciesPopup.classList.toggle('collapsed');
+    });
 
     canvas.addEventListener('mouseup', e => {
       if (!clickStart) return;
@@ -1375,6 +1434,7 @@
         view = 'zoomOut';
         tween = 1;
         topoTiltTarget = 0;
+        topoRotYTarget = 0;
         backBtn.classList.remove('visible');
         document.getElementById('yearPanel').classList.remove('visible');
         document.getElementById('scrollHint').classList.remove('visible');
@@ -1501,10 +1561,15 @@
       } else if (view === 'topo') {
         e.preventDefault();
         document.getElementById('scrollHint').classList.remove('visible');
+        const curX = e.touches[0].clientX;
         const curY = e.touches[0].clientY;
-        const delta = (lastY - curY) * 0.003;
-        topoTiltTarget = Math.max(0, Math.min(0.75, topoTiltTarget + delta));
-        lastX = e.touches[0].clientX; lastY = curY;
+        // Vertical: tilt
+        const deltaY = (lastY - curY) * 0.003;
+        topoTiltTarget = Math.max(0, Math.min(0.75, topoTiltTarget + deltaY));
+        // Horizontal: rotate
+        const deltaX = (curX - lastX) * 0.15;
+        topoRotYTarget += deltaX;
+        lastX = curX; lastY = curY;
         topoTouchDragging = true;
       }
     }, { passive: false });
