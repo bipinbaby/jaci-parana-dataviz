@@ -69,7 +69,9 @@ Single-file Canvas2D application with additive blending (`globalCompositeOperati
 - Coastal dots are larger, interior dots are smaller (coastDist function checks neighbor pixels)
 - RESEX Jaci-Paraná region blinks green — click it to zoom into topo view
 - Dark ocean with blue atmosphere glow, directional lighting, specular highlight
-- Auto-rotates, drag to spin (mouse + touch), starts facing South America
+- Starts facing South America (rotY=154) with RESEX visible, pauses 4s before auto-rotating
+- Pulsing "Click the green region to explore" hint tracks RESEX position on globe
+- Mobile: "Explore Reserve" button at bottom as alternative to tapping green dots
 - Globe is laterally inverted (x negated in projection)
 
 **2. Topo Dot Map with Deforestation Data** (transitions from globe on click)
@@ -88,15 +90,24 @@ Single-file Canvas2D application with additive blending (`globalCompositeOperati
 - No boundary line (removed — dots define the shape)
 - Additive blending: overlapping dots glow brighter naturally
 
+**2b. Surrounding Territory**
+- Dots outside reserve boundary with `isOutside: true`, white color, faded by distance from boundary
+- Real SRTM elevation from 4 tiles (S10W064, S10W065, S11W064, S11W065)
+- `heightmap_expanded.png` (932x1280) covers BBOX ± 0.18° surround, elevation 51m-371m
+- `SURROUND = 0.18` expansion around reserve boundary
+- Viewport fit uses only reserve dots (not surrounding) for bounding box
+
 **3. 3D Terrain Heightmap** (scroll down from topo view)
 - Scroll-driven tilt transition: `topoTilt` 0→0.75 (max 70° × 0.75 = 52.5°)
-- Y-axis rotation coupled to tilt: `topoRotY = topoTilt * 45` (~34° at max)
-- Each dot has `d.elev` sampled from `heightmap.png` (SRTM 30m, 57-301m range)
+- Y-axis rotation: base from tilt + user drag offset (`topoRotYTarget`), lerped smoothly
+- Mobile horizontal swipe adds to `topoRotYTarget` for free Y-axis rotation
+- Each dot has `d.elev` sampled from `heightmap_expanded.png` (SRTM 30m, 51-371m range)
 - Elevation scale: `topoTilt * gridH * 0.12` (gentle hills, not mountains — real terrain is 0.28% grade)
 - Proper 3D camera model: perspective projection with `camDist = gridH * 1.2`
 - Two-pass rendering: pass 1 projects all dots + finds bounding box, pass 2 scales to fill viewport
 - Back-to-front depth sorting when tilted
 - Smooth lerped transitions (tilt lerp 0.08, no abrupt jumps)
+- "Scroll to explore terrain" hint (bottom-right) appears on entering topo view, dismisses on first interaction
 
 **4. Year Slider + Stats**
 - Slider at bottom of topo view: 1996–2024
@@ -105,23 +116,17 @@ Single-file Canvas2D application with additive blending (`globalCompositeOperati
 - Forest in green, pasture in gold — numbers use `en-US` locale formatting
 - Panel appears on entering topo view, hides on zoom out
 
-**5. Biodiversity Layer**
-- 8,300 GBIF species observation dots rendered on the topo map
-- Color-coded by taxonomic class:
-  - Birds (#FF6B9D pink), Insects (#FFB800 amber), Mammals (#FFFFFF white)
-  - Reptiles (#FF8C42 orange), Amphibians (#00E6B4 teal), Turtles (#FFAA32 warm orange)
-  - Flowering Plants (#8CE664 lime), Monocots (#B4FF8C light green), Ferns (#64C88C fern green)
-  - Clubmoss (#50B478), Gymnosperm (#78D26E), Nematodes (#C8A0FF lavender)
-  - Flukes (#8C8CDC purple), Tapeworms (#A078C8 dark purple)
-- Each dot twinkles independently (sin wave with position-based phase offset via `blink` timer)
-- Dot size: `baseR * 0.75` (smaller than land dots), with `tiltShrink = 1/(1 + topoTilt * 1.2)` so they shrink when tilted into 3D
-- Outer glow pulses with twinkle, core dot brightness oscillates 0.5–1.0
-- **Click popup:** clicking a species dot shows:
-  - Species name (italic), taxonomic class label (colored), observation year range
-  - "Still observed" (green) for species seen 2020+
-  - "Last seen YYYY — not resurveyed in N years" (red) for species not seen recently
-- Popup tracks the dot position during scroll/tilt animation
-- Hover shows pointer cursor on species dots
+**5. Biodiversity Clusters**
+- 8,300 GBIF records grouped into spatial grid clusters (0.04° cell size, ~4.4km)
+- Each cluster rendered as a dark box with neon glow border (dominant category color)
+- Neon border twinkles via sine wave with position-based phase offset
+- Uniform category circles inside each box, color-coded by taxonomic class
+- Clusters hidden when year slider passes all their species' last observation year
+- Handles null years (always show), pre-1996 records (always show), and in-range years (filter)
+- **Click popup (desktop):** positioned near cursor, shows species grouped by class with year info
+- **Tap popup (mobile):** full-screen overlay with X close button
+- Species listed with italic names, year in green (still observed 2020+) or red (not resurveyed)
+- Footer legend explains green/red year coloring
 
 **6. Layer Toggle Buttons**
 - Pill-shaped toggle buttons in top-right: Forest, Pasture, Water, Species
@@ -132,6 +137,22 @@ Single-file Canvas2D application with additive blending (`globalCompositeOperati
 **State Machine:** `globe` → `zoomIn` → `topo` → `zoomOut` → `globe`
 - "← GLOBE" back button appears in topo view
 - Zoom transition: globe rotates to center RESEX, zooms 6x, crossfades to topo
+
+**7. Mobile Support**
+- Landscape prompt overlay for portrait mode ("Rotate your device")
+- Single-finger vertical swipe: tilt terrain into 3D
+- Single-finger horizontal swipe: rotate map on Y-axis
+- Tap cluster boxes: full-screen species overlay with X close button
+- "Explore Reserve" button on globe view (alternative to tapping green dots)
+- "Swipe to explore terrain" hint (vs "Scroll" on desktop)
+- Reduced `shadowBlur` on mobile for performance (3+3 vs 8+8, skip second stroke pass)
+- `isMobile` detection via `ontouchstart` / `maxTouchPoints`
+
+### Deployment
+- **GitHub:** https://github.com/bipinbaby/jaci-parana-dataviz
+- **Vercel:** jaci-parana-dataviz.vercel.app
+- `vercel.json` rewrites `/` → `/web/index.html`
+- `.gitignore` excludes: cobertura_tiff/, RESEX_Jaci_parana/, *.zip, *.xlsx, *.jpeg, *.hgt.gz, td_assets/
 
 ### Removed Features
 - **Road overlay** — removed because elevation exaggeration made roads look unrealistically steep. Road data (`roads.geojson`) still in web_assets if needed later.
@@ -149,6 +170,7 @@ Single-file Canvas2D application with additive blending (`globalCompositeOperati
 - NO abstract particle effects or heavy WebGL shaders
 - NO road overlay (inaccurate with terrain exaggeration)
 - NO turntable rotation slider (tried, reverted)
+- NO title "DISSOLVE" — renamed to "DATAVIZ"
 - Build piece by piece, not all at once
 
 ### What's NOT Built Yet
