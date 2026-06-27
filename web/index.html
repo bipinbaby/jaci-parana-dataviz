@@ -326,6 +326,27 @@
       pointer-events: auto;
     }
 
+    .globe-hint {
+      position: fixed;
+      z-index: 15;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.8s;
+    }
+    .globe-hint.visible { opacity: 1; }
+    .globe-hint-text {
+      font-family: system-ui, sans-serif;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+      color: rgba(255,255,255,0.6);
+      white-space: nowrap;
+      animation: hintPulse 2s ease-in-out infinite;
+    }
+    @keyframes hintPulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+
     /* ── Mobile responsive ─────────────────── */
     @media (max-width: 600px) {
       .zoom-in-btn { display: block; }
@@ -409,6 +430,9 @@
     <div class="rotate-icon">&#128241;</div>
     <div class="rotate-text">Rotate your device to landscape<br>for the best experience</div>
   </div>
+  <div class="globe-hint" id="globeHint">
+    <div class="globe-hint-text">Click the green region to explore</div>
+  </div>
   <div class="back-btn" id="backBtn">&#8592; GLOBE</div>
 
   <div class="species-popup" id="speciesPopup">
@@ -465,8 +489,9 @@
     const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
     let W, H, R;
-    let rotY = -60, rotX = 0;
-    let autoRot = true;
+    let rotY = 154, rotX = 6;
+    let autoRot = false;
+    setTimeout(() => { if (view === 'globe' && !dragging) autoRot = true; }, 4000);
     let blink = 0;
 
     // ── State ──────────────────────────────────────────
@@ -627,7 +652,10 @@
             globeDots.push({ lon, lat, isTarget: true, coast: 0.5 });
 
         globeReady = true;
-        if (isMobile) document.getElementById('zoomInBtn').classList.add('visible');
+        if (isMobile) {
+          document.getElementById('zoomInBtn').classList.add('visible');
+          document.querySelector('.globe-hint-text').textContent = 'Tap the green region to explore';
+        }
       };
       img.src = '../web_assets/land_mask.png';
     }
@@ -1210,8 +1238,19 @@
       if (view === 'globe') {
         if (autoRot) rotY += 0.12;
         drawGlobe(1, 1, rotY, rotX);
+        // Position globe hint near RESEX
+        const hintEl = document.getElementById('globeHint');
+        const tp = projectGlobe(TARGET_LON, TARGET_LAT, rotY, rotX, R);
+        if (tp && tp.z > 0.1) {
+          hintEl.style.left = (tp.sx + 20) + 'px';
+          hintEl.style.top = (tp.sy - 10) + 'px';
+          if (!hintEl.classList.contains('visible')) hintEl.classList.add('visible');
+        } else {
+          hintEl.classList.remove('visible');
+        }
       }
       else if (view === 'zoomIn') {
+        document.getElementById('globeHint').classList.remove('visible');
         tween = Math.min(tween + 0.012, 1);
         const t = easeInOut(tween);
 
