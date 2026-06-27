@@ -345,9 +345,47 @@
       .sp-footer { padding: 0.35rem 0.7rem; font-size: 0.45rem; }
       .scroll-hint { bottom: 7.5rem; font-size: 0.65rem; }
     }
+
+    /* ── Portrait prompt — ask user to rotate ─── */
+    .rotate-prompt {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      background: #000;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.2rem;
+      font-family: system-ui, sans-serif;
+      color: rgba(255,255,255,0.7);
+      text-align: center;
+      padding: 2rem;
+    }
+    .rotate-prompt .rotate-icon {
+      font-size: 3rem;
+      animation: rotateNudge 2s ease-in-out infinite;
+    }
+    .rotate-prompt .rotate-text {
+      font-size: 0.85rem;
+      letter-spacing: 0.06em;
+      line-height: 1.5;
+    }
+    @keyframes rotateNudge {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(90deg); }
+      50%, 75% { transform: rotate(90deg); }
+    }
+    @media (max-width: 600px) and (orientation: portrait) {
+      .rotate-prompt { display: flex; }
+    }
   </style>
 </head>
 <body>
+  <div class="rotate-prompt">
+    <div class="rotate-icon">&#128241;</div>
+    <div class="rotate-text">Rotate your device to landscape<br>for the best experience</div>
+  </div>
   <div class="back-btn" id="backBtn">&#8592; GLOBE</div>
 
   <div class="species-popup" id="speciesPopup">
