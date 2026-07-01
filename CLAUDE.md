@@ -139,7 +139,10 @@ Single-file Canvas2D application with additive blending (`globalCompositeOperati
 - Zoom transition: globe rotates to center RESEX, zooms 6x, crossfades to topo
 
 **7. Mobile Support**
-- Landscape prompt overlay for portrait mode ("Rotate your device")
+- Works natively in portrait — no forced-landscape gate (removed 2026-07-02; previously blocked portrait entirely with a rotate-device overlay)
+- Globe/topo canvas layout already adapts to any aspect ratio, so portrait just works
+- Globe hint label clamps to viewport edges and wraps text so it never overflows offscreen on narrow widths
+- Portrait-specific CSS: layer-bar becomes a top horizontal row (was bottom-right column, sized for landscape)
 - Single-finger vertical swipe: tilt terrain into 3D
 - Single-finger horizontal swipe: rotate map on Y-axis
 - Tap cluster boxes: full-screen species overlay with X close button

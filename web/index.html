@@ -363,6 +363,7 @@
         font-size: 0.65rem;
       }
       .btn-dot { width: 10px; height: 10px; }
+      .globe-hint-text { white-space: normal; max-width: 42vw; font-size: 0.7rem; display: inline-block; }
       .year-panel { bottom: 1.2rem; gap: 0.4rem; }
       .year-display { font-size: 1.6rem; }
       .year-stats { font-size: 0.6rem; }
@@ -390,46 +391,16 @@
       .scroll-hint { bottom: 1.5rem; right: 1rem; font-size: 0.65rem; }
     }
 
-    /* ── Portrait prompt — ask user to rotate ─── */
-    .rotate-prompt {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 999;
-      background: #000;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 1.2rem;
-      font-family: system-ui, sans-serif;
-      color: rgba(255,255,255,0.7);
-      text-align: center;
-      padding: 2rem;
-    }
-    .rotate-prompt .rotate-icon {
-      font-size: 3rem;
-      animation: rotateNudge 2s ease-in-out infinite;
-    }
-    .rotate-prompt .rotate-text {
-      font-size: 0.85rem;
-      letter-spacing: 0.06em;
-      line-height: 1.5;
-    }
-    @keyframes rotateNudge {
-      0%, 100% { transform: rotate(0deg); }
-      25% { transform: rotate(90deg); }
-      50%, 75% { transform: rotate(90deg); }
-    }
+    /* ── Portrait-specific tweaks ─── */
     @media (max-width: 600px) and (orientation: portrait) {
-      .rotate-prompt { display: flex; }
+      .zoom-in-btn { bottom: 1.2rem; }
+      .layer-bar { bottom: auto; top: 1rem; flex-direction: row; }
+      .year-panel { bottom: 1rem; }
+      .scroll-hint { bottom: 1rem; }
     }
   </style>
 </head>
 <body>
-  <div class="rotate-prompt">
-    <div class="rotate-icon">&#128241;</div>
-    <div class="rotate-text">Rotate your device to landscape<br>for the best experience</div>
-  </div>
   <div class="globe-hint" id="globeHint">
     <div class="globe-hint-text">Click the green region to explore</div>
   </div>
@@ -1242,8 +1213,12 @@
         const hintEl = document.getElementById('globeHint');
         const tp = projectGlobe(TARGET_LON, TARGET_LAT, rotY, rotX, R);
         if (tp && tp.z > 0.1) {
-          hintEl.style.left = (tp.sx + 20) + 'px';
-          hintEl.style.top = (tp.sy - 10) + 'px';
+          const hintW = hintEl.offsetWidth || 220;
+          let hx = tp.sx + 20;
+          if (hx + hintW > W - 8) hx = tp.sx - hintW - 20; // flip to left if it'd overflow
+          hx = Math.max(8, Math.min(hx, W - hintW - 8));
+          hintEl.style.left = hx + 'px';
+          hintEl.style.top = Math.max(8, Math.min(tp.sy - 10, H - 40)) + 'px';
           if (!hintEl.classList.contains('visible')) hintEl.classList.add('visible');
         } else {
           hintEl.classList.remove('visible');
