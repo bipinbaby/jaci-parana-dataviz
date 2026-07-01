@@ -117,7 +117,7 @@ Single-file Canvas2D application with additive blending (`globalCompositeOperati
 - Panel appears on entering topo view, hides on zoom out
 
 **5. Biodiversity Clusters**
-- 8,300 GBIF records grouped into spatial grid clusters (0.04° cell size, ~4.4km)
+- 8,300 GBIF records grouped into spatial grid clusters (0.04° cell size ~4.4km on desktop; 0.08° ~8.8km on mobile → ~61 vs ~32 markers, cuts screen overlap ~80%)
 - Each cluster rendered as a dark box with neon glow border (dominant category color)
 - Neon border twinkles via sine wave with position-based phase offset
 - Uniform category circles inside each box, color-coded by taxonomic class
@@ -128,8 +128,9 @@ Single-file Canvas2D application with additive blending (`globalCompositeOperati
 - Species listed with italic names, year in green (still observed 2020+) or red (not resurveyed)
 - Footer legend explains green/red year coloring
 
-**6. Layer Toggle Buttons**
-- Pill-shaped toggle buttons in top-right: Forest, Pasture, Water, Species
+**6. Layer Toggle Buttons + Legend**
+- Pill-shaped toggle buttons in top-right: Forest, Pasture, Water, Species, + a Legend button
+- **Legend popup:** toggled by the Legend pill. Three sections — Land cover (forest/pasture/water/never-forest/surrounding), Species types (taxonomic class → colour, with live record counts ordered desc: Birds 6,293 … Tapeworms 1), and Observation year key (green=2020+, red=not resurveyed). Desktop = compact top-right panel; mobile (≤600px) = full-screen overlay with X. Auto-hides when a species popup opens or on return to globe.
 - Each button has a colored dot swatch and toggles its layer on/off
 - Active state: colored border + tinted background. Off state: dimmed to 35% opacity
 - Appears on entering topo view, hides on zoom out
@@ -143,7 +144,9 @@ Single-file Canvas2D application with additive blending (`globalCompositeOperati
 - Globe/topo canvas layout already adapts to any aspect ratio, so portrait just works
 - Globe hint label clamps to viewport edges and wraps text so it never overflows offscreen on narrow widths
 - Portrait-specific CSS: layer-bar becomes a top horizontal row (was bottom-right column, sized for landscape)
-- Single-finger vertical swipe: tilt terrain into 3D
+- Species markers are only ~17px tall (under the ~44px finger target): `findBioHit` falls back to nearest-marker-within-22px on touch (slop 0 on desktop = exact behavior preserved)
+- Coarser clustering on mobile (0.08° cells) so markers stack into fewer boxes, reducing overlap
+- Single-finger vertical swipe: tilt terrain into 3D (same as desktop scroll). Horizontal-swipe Y-rotation was REMOVED — mobile now mirrors the desktop scroll animation (tilt only; baseRotY stays tilt-linked via topoTilt*45)
 - Single-finger horizontal swipe: rotate map on Y-axis
 - Tap cluster boxes: full-screen species overlay with X close button
 - "Explore Reserve" button on globe view (alternative to tapping green dots)

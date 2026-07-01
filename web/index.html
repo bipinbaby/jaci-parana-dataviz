@@ -213,6 +213,75 @@
       flex-shrink: 0;
     }
 
+    /* ── Legend button + popup ─────────────── */
+    .legend-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.75);
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s;
+    }
+    .legend-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+    .legend-btn.open {
+      border-color: rgba(255,255,255,0.4);
+      background: rgba(255,255,255,0.14);
+      color: #fff;
+    }
+
+    .legend-popup {
+      position: fixed;
+      z-index: 21;
+      top: 4.2rem;
+      right: 1.5rem;
+      width: 220px;
+      max-height: 72vh;
+      background: rgba(10, 10, 15, 0.94);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      font-family: system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .legend-popup.visible { opacity: 1; pointer-events: auto; }
+    .legend-popup .sp-close-btn { display: flex; }
+
+    .lg-section { padding: 0.5rem 0.9rem; }
+    .lg-section + .lg-section { border-top: 1px solid rgba(255,255,255,0.07); }
+    .lg-title {
+      font-size: 0.58rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      margin-bottom: 0.35rem;
+    }
+    .lg-row {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.82);
+      padding: 0.13rem 0;
+    }
+    .lg-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .lg-count {
+      margin-left: auto;
+      font-size: 0.58rem;
+      color: rgba(255,255,255,0.35);
+      font-variant-numeric: tabular-nums;
+    }
+
     .year-panel {
       position: fixed;
       bottom: 2rem;
@@ -370,12 +439,13 @@
       .year-slider { height: 3px; }
       .year-slider::-webkit-slider-thumb { width: 20px; height: 20px; }
       .year-slider::-moz-range-thumb { width: 20px; height: 20px; }
-      .species-popup {
+      .species-popup, .legend-popup {
         width: 100%;
         height: 100%;
         max-height: 100%;
         left: 0 !important;
         top: 0 !important;
+        right: 0 !important;
         bottom: auto !important;
         border-radius: 0;
         border: none;
@@ -394,7 +464,11 @@
     /* ── Portrait-specific tweaks ─── */
     @media (max-width: 600px) and (orientation: portrait) {
       .zoom-in-btn { bottom: 1.2rem; }
-      .layer-bar { bottom: auto; top: 1rem; flex-direction: row; }
+      .layer-bar {
+        bottom: auto; top: 1rem; left: 0; right: 0;
+        flex-direction: row; flex-wrap: wrap; justify-content: center;
+        padding: 0 0.5rem;
+      }
       .year-panel { bottom: 1rem; }
       .scroll-hint { bottom: 1rem; }
     }
@@ -437,6 +511,18 @@
     <div class="layer-btn active" data-layer="biodiversity" style="--btn-color:#FF6B9D">
       <span class="btn-dot" style="background:#FF6B9D"></span> Species
     </div>
+    <div class="legend-btn" id="legendBtn">
+      <span class="btn-dot" style="background:transparent;border:1px solid rgba(255,255,255,0.55)"></span> Legend
+    </div>
+  </div>
+
+  <div class="legend-popup" id="legendPopup">
+    <div class="sp-close-btn" id="legendCloseBtn">&#10005;</div>
+    <div class="sp-header">
+      <div class="sp-count">Legend</div>
+      <div class="sp-subtitle">What the colours mean</div>
+    </div>
+    <div class="sp-body" id="legendBody"></div>
   </div>
 
   <div class="year-panel" id="yearPanel">
@@ -537,7 +623,9 @@
 
     // Cluster bio records into spatial grid cells
     function clusterBioRecords() {
-      const cellSize = 0.04; // ~4.4km cells
+      // Coarser cells on mobile (~8.8km vs ~4.4km) so markers stack into
+      // fewer, bigger boxes — cuts screen overlap ~80% on small viewports.
+      const cellSize = isMobile ? 0.08 : 0.04;
       const cells = {};
 
       for (const rec of bioRecords) {
@@ -1318,13 +1406,26 @@
 
     function findBioHit(x, y) {
       if (!layers.biodiversity) return null;
+      // Exact box hit first (precise for mouse).
       for (const bp of bioProjected) {
         if (x >= bp.bx && x <= bp.bx + bp.boxW &&
             y >= bp.by && y <= bp.by + bp.boxH) {
           return bp;
         }
       }
-      return null;
+      // Forgiving fallback for touch: markers are only ~17px tall, well under
+      // the ~44px finger target, so snap to the nearest marker within a
+      // finger-sized radius of the tap. Desktop (slop 0) keeps exact behavior.
+      const slop = isMobile ? 22 : 0;
+      if (slop === 0) return null;
+      let best = null, bestD = slop;
+      for (const bp of bioProjected) {
+        const nx = Math.max(bp.bx, Math.min(x, bp.bx + bp.boxW));
+        const ny = Math.max(bp.by, Math.min(y, bp.by + bp.boxH));
+        const d = Math.hypot(x - nx, y - ny);
+        if (d < bestD) { bestD = d; best = bp; }
+      }
+      return best;
     }
 
     function buildPopupContent(cluster) {
@@ -1400,6 +1501,7 @@
     }
 
     function showSpeciesPopup(hit, x, y) {
+      hideLegend();
       selectedBioRec = hit.cluster;
       buildPopupContent(hit.cluster);
       speciesPopup.classList.remove('collapsed');
@@ -1520,6 +1622,7 @@
         document.getElementById('scrollHint').classList.remove('visible');
         layerBar.classList.remove('visible');
         hideSpeciesPopup();
+        hideLegend();
       }
     });
 
@@ -1561,6 +1664,72 @@
         btn.classList.toggle('off', !layers[key]);
       });
     });
+
+    // ── Legend popup ──────────────────────────────────
+    const legendBtn = document.getElementById('legendBtn');
+    const legendPopup = document.getElementById('legendPopup');
+
+    // Build legend body: land-cover key, species types (with counts),
+    // and the observation-year colour key.
+    function buildLegend() {
+      const body = document.getElementById('legendBody');
+
+      const land = [
+        ['Forest still standing', '31,141,73'],
+        ['Cleared to pasture', '237,205,97'],
+        ['Water', '60,140,255'],
+        ['Never forest', '90,95,100'],
+        ['Surrounding land', '255,255,255'],
+      ];
+      let html = '<div class="lg-section"><div class="lg-title">Land cover</div>';
+      for (const [label, rgb] of land) {
+        html += `<div class="lg-row"><span class="lg-dot" style="background:rgb(${rgb})"></span>${label}</div>`;
+      }
+      html += '</div>';
+
+      // Species types — colour per taxonomic class, ordered by record count
+      const counts = {};
+      for (const r of bioRecords) {
+        const c = r.class || 'Unknown';
+        counts[c] = (counts[c] || 0) + 1;
+      }
+      const ordered = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+      html += '<div class="lg-section"><div class="lg-title">Species types</div>';
+      if (ordered.length === 0) {
+        html += '<div class="lg-row" style="color:rgba(255,255,255,0.4)">Loading…</div>';
+      }
+      for (const [cls, n] of ordered) {
+        const c = BIO_COLORS[cls] || BIO_DEFAULT;
+        const label = CLASS_LABELS[cls] || cls;
+        html += `<div class="lg-row"><span class="lg-dot" style="background:rgb(${c.r},${c.g},${c.b})"></span>` +
+          `${label}<span class="lg-count">${n.toLocaleString('en-US')}</span></div>`;
+      }
+      html += '</div>';
+
+      html += '<div class="lg-section"><div class="lg-title">Observation year</div>' +
+        '<div class="lg-row"><span class="lg-dot" style="background:rgba(80,200,120,0.9)"></span>Still observed recently (2020+)</div>' +
+        '<div class="lg-row"><span class="lg-dot" style="background:rgba(255,80,80,0.9)"></span>Last recorded, not resurveyed</div>' +
+        '</div>';
+
+      body.innerHTML = html;
+    }
+
+    function showLegend() {
+      buildLegend();
+      hideSpeciesPopup();
+      legendPopup.classList.add('visible');
+      legendBtn.classList.add('open');
+    }
+    function hideLegend() {
+      legendPopup.classList.remove('visible');
+      legendBtn.classList.remove('open');
+    }
+    legendBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (legendPopup.classList.contains('visible')) hideLegend();
+      else showLegend();
+    });
+    document.getElementById('legendCloseBtn').addEventListener('click', hideLegend);
 
     // ── Drag interaction (globe only) ──────────────────
     let dragging = false, lastX = 0, lastY = 0;
@@ -1643,12 +1812,10 @@
         document.getElementById('scrollHint').classList.remove('visible');
         const curX = e.touches[0].clientX;
         const curY = e.touches[0].clientY;
-        // Vertical: tilt
+        // Vertical swipe drives tilt — same as the desktop scroll animation.
+        // (Horizontal-swipe Y-rotation intentionally removed.)
         const deltaY = (lastY - curY) * 0.003;
         topoTiltTarget = Math.max(0, Math.min(0.75, topoTiltTarget + deltaY));
-        // Horizontal: rotate
-        const deltaX = (curX - lastX) * 0.15;
-        topoRotYTarget += deltaX;
         lastX = curX; lastY = curY;
         topoTouchDragging = true;
       }
